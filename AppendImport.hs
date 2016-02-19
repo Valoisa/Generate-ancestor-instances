@@ -1,3 +1,4 @@
+-- Contains the functions that "pull out" the modules' imports
 module AppendImport where
 
 import DynFlags
@@ -18,27 +19,30 @@ import Data.List
 
 import System.Environment
 
-getLImortDecls :: IO (Maybe (HsModule RdrName)) -> IO (Maybe [LImportDecl RdrName])
+getLImortDecls :: IO (Maybe (HsModule RdrName)) 
+                                -> IO (Maybe [LImportDecl RdrName])
 getLImortDecls md = do
-	mp <- md
-	case mp of
-		Nothing  -> return Nothing
-		Just mdl -> return $ Just (hsmodImports mdl)
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (hsmodImports mdl)
 
 
-getImportDecls :: IO (Maybe [LImportDecl RdrName]) -> IO (Maybe [ImportDecl RdrName])
+getImportDecls :: IO (Maybe [LImportDecl RdrName]) 
+                                    -> IO (Maybe [ImportDecl RdrName])
 getImportDecls md = do
-	mp <- md
-	case mp of
-		Nothing -> return Nothing
-		Just mdl -> return $ Just (map unLoc mdl)
-
-{-getOneImportDecl :: HsDecl RdrName -> ImportDecl RdrName
-getOneImportDecl a = case a of
-	ImportDecl mdl -> a-}
+    mp <- md
+    case mp of
+        Nothing -> return Nothing
+        Just mdl -> return $ Just (map unLoc mdl)
 
 getModulesNames :: [ImportDecl RdrName] -> [String]
 getModulesNames = map (moduleNameString.unLoc.ideclName)
 
 applicIsImported :: [String] -> Bool
 applicIsImported xs = "Control.Applicative" `elem` xs
+
+appendImport :: [String] -> [String]
+appendImport xs
+        | applicIsImported xs == True   = xs
+        | otherwise                     = xs ++ ["Control.Applicative"]
