@@ -123,16 +123,24 @@ rdrName2String nm = showSDocUnsafe $ pprOccName $ rdrNameOcc nm
 getFunExprs :: IO (Maybe [[HsBindLR RdrName RdrName]])
                     -> IO (Maybe [[String]])
 getFunExprs md = undefined {-do
-	mp <- md
-	case mp of 
-		Nohing   -> return Nothing
-		Just mdl -> return $ Just (map ((map (rdrName2String . unLoc
+    mp <- md
+    case mp of 
+        Nohing   -> return Nothing
+        Just mdl -> return $ Just (map ((map (rdrName2String . unLoc
                                         . fun_matchess))
                                         . filter isFunBind) mdl)-}
 
 getOneLHsExpr :: MatchGroup RdrName (LHsExpr RdrName) -> LHsExpr RdrName
-getOneLHsExpr = undefined -- (MatchGroup a (b)) = b
+getOneLHsExpr (MG _ _ _ _) = undefined
 
+getFunDeclTypes :: IO (Maybe [[HsBindLR RdrName RdrName]])
+                    -> IO (Maybe [[Bool]])
+getFunDeclTypes md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map ((map fun_infix)
+                                            .filter isFunBind) mdl)
 
 -- The following functions are the superpositions
 -- of the previous funtions
@@ -143,4 +151,9 @@ getListOfHsTypes = getHsType . getClsInstDecl . getInstDecls
 getListsOfFunNames :: IO (Maybe (HsModule RdrName)) 
                                     -> IO (Maybe [[String]])
 getListsOfFunNames = getFunBindsIds . getHsBinds . getClsInstDecl 
+                        . getInstDecls . getHsDecls . getHsModDecls
+                        
+getListsOfFunDeclTypes :: IO (Maybe (HsModule RdrName)) 
+                                    -> IO (Maybe [[Bool]])
+getListsOfFunDeclTypes = getFunDeclTypes . getHsBinds . getClsInstDecl 
                         . getInstDecls . getHsDecls . getHsModDecls
