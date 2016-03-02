@@ -120,6 +120,60 @@ getFunBindsIds md = do
 rdrName2String :: RdrName -> String
 rdrName2String nm = showSDocUnsafe $ pprOccName $ rdrNameOcc nm
 
+-- "Pulls" the MatchGroup out of the FunBind
+getMatcheGroup :: IO (Maybe [[HsBindLR RdrName RdrName]])
+                -> IO (Maybe [[MatchGroup RdrName (LHsExpr RdrName)]])
+getMatcheGroup md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map ((map fun_matches)
+                                            . filter isFunBind) mdl)
+
+getLMatches :: IO (Maybe [[MatchGroup RdrName (LHsExpr RdrName)]])
+                -> IO (Maybe [[[LMatch RdrName (LHsExpr RdrName)]]])
+getLMatches md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map (map mg_alts) mdl)
+
+getMatches :: IO (Maybe [[[LMatch RdrName (LHsExpr RdrName)]]])
+                -> IO (Maybe [[[Match RdrName (LHsExpr RdrName)]]])
+getMatches md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map (map (map unLoc)) mdl)
+
+getLPats :: IO (Maybe [[[LMatch RdrName (LHsExpr RdrName)]]])
+            -> IO (Maybe [[[[LPat RdrName]]]])
+getLPats md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map (map (map hsLMatchPats)) mdl)
+
+lPatsToString :: IO (Maybe [[[[LPat RdrName]]]])
+                -> IO (Maybe [[[[String]]]])
+lPatsToString md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map (map (map (map (showSDocUnsafe
+                                            . pprParendLPat))))mdl)
+
+-- Это гарды
+getGRHSs :: IO (Maybe [[[Match RdrName (LHsExpr RdrName)]]])
+                -> IO (Maybe [[[GRHSs RdrName (LHsExpr RdrName)]]])
+getGRHSs md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map (map (map m_grhss)) mdl)
+
+
+
 getFunExprs :: IO (Maybe [[HsBindLR RdrName RdrName]])
                     -> IO (Maybe [[String]])
 getFunExprs md = undefined {-do
@@ -144,16 +198,29 @@ getFunDeclTypes md = do
 
 -- The following functions are the superpositions
 -- of the previous funtions
+
+-- The list of Instances' headers: <type> <name>
 getListOfHsTypes :: IO (Maybe (HsModule RdrName)) -> IO (Maybe [String])
 getListOfHsTypes = getHsType . getClsInstDecl . getInstDecls
                              . getHsDecls . getHsModDecls
 
+-- The list of names of the fuctions that are declared in the 
+-- instances
 getListsOfFunNames :: IO (Maybe (HsModule RdrName)) 
                                     -> IO (Maybe [[String]])
 getListsOfFunNames = getFunBindsIds . getHsBinds . getClsInstDecl 
                         . getInstDecls . getHsDecls . getHsModDecls
-                        
+
+-- The list of function declaration types: True -- infix,
+-- False -- not infix
 getListsOfFunDeclTypes :: IO (Maybe (HsModule RdrName)) 
                                     -> IO (Maybe [[Bool]])
 getListsOfFunDeclTypes = getFunDeclTypes . getHsBinds . getClsInstDecl 
+                        . getInstDecls . getHsDecls . getHsModDecls
+
+-- The list of Pats (lists of finctions' arguments)
+getListsOfLPats :: IO (Maybe (HsModule RdrName)) 
+                                    -> IO (Maybe [[[[String]]]])
+getListsOfLPats = lPatsToString . getLPats . getLMatches
+                        . getMatcheGroup . getHsBinds . getClsInstDecl 
                         . getInstDecls . getHsDecls . getHsModDecls
