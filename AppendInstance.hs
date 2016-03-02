@@ -196,6 +196,15 @@ getFunDeclTypes md = do
         Just mdl -> return $ Just (map ((map fun_infix)
                                             .filter isFunBind) mdl)
 
+bindsToString :: IO (Maybe [[HsBindLR RdrName RdrName]])
+                -> IO (Maybe [[String]])
+bindsToString md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map (map (showSDocUnsafe 
+                                                . ppr_monobind)) mdl)
+
 -- The following functions are the superpositions
 -- of the previous funtions
 
@@ -204,23 +213,26 @@ getListOfHsTypes :: IO (Maybe (HsModule RdrName)) -> IO (Maybe [String])
 getListOfHsTypes = getHsType . getClsInstDecl . getInstDecls
                              . getHsDecls . getHsModDecls
 
+getListOfHsBinds :: IO (Maybe (HsModule RdrName))
+                            -> IO (Maybe [[HsBindLR RdrName RdrName]])
+getListOfHsBinds = getHsBinds . getClsInstDecl 
+                   . getInstDecls . getHsDecls . getHsModDecls
+
 -- The list of names of the fuctions that are declared in the 
 -- instances
 getListsOfFunNames :: IO (Maybe (HsModule RdrName)) 
                                     -> IO (Maybe [[String]])
-getListsOfFunNames = getFunBindsIds . getHsBinds . getClsInstDecl 
-                        . getInstDecls . getHsDecls . getHsModDecls
+getListsOfFunNames = getFunBindsIds . getListOfHsBinds
 
 -- The list of function declaration types: True -- infix,
 -- False -- not infix
 getListsOfFunDeclTypes :: IO (Maybe (HsModule RdrName)) 
                                     -> IO (Maybe [[Bool]])
-getListsOfFunDeclTypes = getFunDeclTypes . getHsBinds . getClsInstDecl 
-                        . getInstDecls . getHsDecls . getHsModDecls
+getListsOfFunDeclTypes = getFunDeclTypes . getListOfHsBinds
 
 -- The list of Pats (lists of finctions' arguments)
 getListsOfLPats :: IO (Maybe (HsModule RdrName)) 
                                     -> IO (Maybe [[[[String]]]])
 getListsOfLPats = lPatsToString . getLPats . getLMatches
-                        . getMatcheGroup . getHsBinds . getClsInstDecl 
-                        . getInstDecls . getHsDecls . getHsModDecls
+                        . getMatcheGroup . getListOfHsBinds
+
