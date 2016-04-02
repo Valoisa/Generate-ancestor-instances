@@ -1,0 +1,68 @@
+\documentclass [12 pt ] {beamer}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{amssymb,amsfonts,amsmath,mathtext}
+\usepackage{cite,enumerate,float,indentfirst}
+\usepackage[export]{adjustbox}
+\usepackage{paratype} % шрифты
+\usepackage{wrapfig}
+
+\usepackage{listings}
+\lstset{
+    language=Haskell,%  Язык указать здесь
+    basicstyle=\small,
+    breaklines=true,%
+    showstringspaces=false%
+    inputencoding=utf8x%
+}
+\usetheme {metropolis}
+
+\title{Генерация экземпляров классов типов \\ 
+    на основе экземпляров производных классов в языке Haskell}
+\author{\small О.\,Е.~Филиппская }
+\institute{\textit{Направление подготовки:} Прикладная математика и информатика\\
+\textit{Руководитель:} асс. каф. ИВЭ А.\,М.~Пеленицын\\
+
+\vspace{8pt}
+
+Южный федеральный университет\\
+Институт математики, механики и компьютерных наук\\
+имени~И.\,И.\,Воровича\\
+
+\vspace{8pt}
+
+Кафедра информатики и вычислительного эксперимента}
+\date{ }
+
+\begin {document}
+    \maketitle
+    \section{Постановка задачи}
+    \begin {frame} {Постановка задачи}
+     <Какой-то умный текст>
+    \end {frame}
+    \begin {frame}[containsverbatim]{GHC < 7.10}
+     \begin{lstlisting}
+class Monad m where  
+    return :: a -> m a
+    (>>=)  :: forall a b. m a 
+                -> (a -> m b) -> m b
+    (>>)   :: forall a b. m a 
+                -> m b -> m b
+    fail   :: String -> m a
+     \end{lstlisting}
+    \end {frame}
+    
+    \begin {frame}[containsverbatim]{GHC >= 7.10}
+     \begin{lstlisting}
+class Applicative m => Monad m where  
+    return :: a -> m a
+    (>>=)  :: forall a b. m a 
+                -> (a -> m b) -> m b
+    (>>)   :: forall a b. m a 
+                -> m b -> m b
+    fail   :: String -> m a
+     \end{lstlisting}
+    \end {frame}
+\end {document}
