@@ -20,6 +20,13 @@
 }
 \usetheme {metropolis}
 
+\newenvironment<>{examplefirst}[1]{%
+  \setbeamercolor{block title}{fg=white,bg=orange!75!black}%
+  \begin{block}#2{#1}}{\end{block}}
+\newenvironment<>{examplesecond}[1]{%
+  \setbeamercolor{block title}{fg=white,bg=blue!75!black}%
+  \begin{block}#2{#1}}{\end{block}}
+
 % Небольшие номера слайдов формата i/N
 \setbeamerfont{page number in head/foot}{size=\small}
 \setbeamertemplate{footline}[frame number]
@@ -44,55 +51,33 @@
 
 \begin {document}
     \maketitle
-    \section{Постановка задачи}
-    
+        
     \begin {frame} {Цель работы}
-        "Заставить" компилироваться программы, которые перестали
-        компилироваться GHC 7.10.x, не дописывая экземпляры вручную.
-    \end {frame}
     
-    \begin {frame}[containsverbatim]{GHC < 7.10}
-        \begin{lstlisting}
-class Monad m where  
-    return :: a -> m a
-    (>>=)  :: forall a b. m a 
-                -> (a -> m b) -> m b
-    (>>)   :: forall a b. m a 
-                -> m b -> m b
-    fail   :: String -> m a
-        \end{lstlisting}
-    \end {frame}
+    \begin {examplefirst}{Проблема}
+    \begin{itemize}
+        \item Applicative Monad Proposal (AMP) вносит предложение
+        сделать класс Monad подклассом класса Applicative.
+        \item GHC 7.8 $\longrightarrow$ GHC 7.10 --- реализует AMP.
+        \item Нарушена обратная совместимость.
+    \end{itemize}
+    \end {examplefirst}
     
-    \begin {frame}[containsverbatim]{GHC >= 7.10}
-        \begin{lstlisting}
-class Applicative m => Monad m where  
-    return :: a -> m a
-    (>>=)  :: forall a b. m a 
-                -> (a -> m b) -> m b
-    (>>)   :: forall a b. m a 
-                -> m b -> m b
-    fail   :: String -> m a
-        \end{lstlisting}
-    \end {frame}
     
-    \begin{frame}{Ошибка}
-    
-    \texttt{Test.hs:24:10:\\
-    No instance for (Applicative Prob)\\
-    ~~ arising from the superclasses of \\
-    ~~ an instance declaration\\
-    In the instance declaration for ‘Monad Prob’}
+    \begin {examplefirst} {Цель}
+    \begin{itemize}
+    \item Создать программное средство, которое восстановит
+        компилируемость программ.
+    \end{itemize}
+    \end {examplefirst}
 
-    \end{frame}
+    \end {frame}
     
-    \section{Решение}
-    
-    \begin{frame}{Ход решения}
+    \begin{frame}{Постановка задачи}
         \begin{enumerate}
-            \item Получить синтаксческое дерево программы 
-                (\textbf{parseModule}).
-            \item Проанализировать пролученное дерево на наличие 
-                экземляров класса \textbf{Monad} (\textbf{ClsInstDecl}).
+            \item Получить синтаксическое дерево программы.
+            \item Отфильтровать узлы, соответствующие 
+                экземплярам класса \textbf{Monad}.
             \item Изменить нужным образом экземпляр класса \textbf{Monad}
                 и добавить, если требуется, экземпляры классов 
                 \textbf{Applicative} и \textbf{Functor}.
@@ -108,9 +93,9 @@ instance Functor Foo where
     fmap  = liftM
 
 instance Applicative Foo where
-    pure  = { - definition of `return` from the `Monad` instance - }
+    pure  = {- `return` from `Monad` instance -}
     (<*>) = ap
-    (*>)  = {- definition of `>>` from the `Monad` instance -}
+    (*>)  = {- `>>` from `Monad` instance -}
 
 instance Monad Foo where
     return = pure
@@ -150,31 +135,27 @@ instanceApplicative insthead funs =
         \end{lstlisting}
     \end {frame}
     
-    \section{Недостатки}
-    
     \begin{frame}{Недостатки}
-        \begin{enumerate}
+        \begin{enumerate}\itemsep=1cm
             \item Комментарии в выходном файле не сохраняются.
-            \item Конструкции case ..  of на выходе синтаксически
+            \item Конструкции \lstinline{case ..  of} на выходе синтаксически
                 неверны (ошибка в исходном коде компилятора).
         \end{enumerate}
     \end{frame}
-    
-    \begin{frame}[containsverbatim]{Ошибка!}
-        \begin{Parallel}{5cm}{5cm}
-            \ParallelLText{ 
-                \begin{lstlisting}
-f mp = case mp of {
-    Nothing -> 1
-    Just _ -> 2 }
-                \end{lstlisting}}
-            \ParallelRText { 
-                \texttt{ \\
-                    Test\_rewrite.hs:43:19:\\ 
-                       ~~ parse error on input ‘->’} }
-        \end{Parallel}
+
+    \begin{frame}{Результаты работы}
+        \begin{enumerate}
+            \item Получить синтаксическое дерево программы 
+                (\textbf{parseModule}).
+            \item Проанализировать пролученное дерево на наличие 
+                экземпляров класса \textbf{Monad} (\textbf{ClsInstDecl}).
+            \item Изменить нужным образом экземпляр класса \textbf{Monad}
+                и добавить, если требуется, экземпляры классов 
+                \textbf{Applicative} и \textbf{Functor}.
+            \item Сформировать новый файл с текстом программы
+                с помощью функций структурной печати 
+                (\textit{pretty-printing}).
+        \end{enumerate}
     \end{frame}
-    
-    \section{Спасибо за внимание!}
     
 \end {document}
