@@ -8,6 +8,7 @@
 \usepackage[export]{adjustbox}
 \usepackage{paratype} % шрифты
 \usepackage{wrapfig}
+\usepackage{parallel}
 
 \usepackage{listings}
 \lstset{
@@ -18,6 +19,11 @@
     inputencoding=utf8x%
 }
 \usetheme {metropolis}
+
+% Небольшие номера слайдов формата i/N
+\setbeamerfont{page number in head/foot}{size=\small}
+\setbeamertemplate{footline}[frame number]
+% Небольшие номера слайдов формата i/N
 
 \title{Генерация экземпляров классов типов \\ 
     на основе экземпляров производных классов в языке Haskell}
@@ -39,11 +45,14 @@
 \begin {document}
     \maketitle
     \section{Постановка задачи}
-    \begin {frame} {Постановка задачи}
-     <Какой-то умный текст>
+    
+    \begin {frame} {Цель работы}
+        "Заставить" компилироваться программы, которые перестали
+        компилироваться GHC 7.10.x, не дописывая экземпляры вручную.
     \end {frame}
+    
     \begin {frame}[containsverbatim]{GHC < 7.10}
-     \begin{lstlisting}
+        \begin{lstlisting}
 class Monad m where  
     return :: a -> m a
     (>>=)  :: forall a b. m a 
@@ -51,11 +60,11 @@ class Monad m where
     (>>)   :: forall a b. m a 
                 -> m b -> m b
     fail   :: String -> m a
-     \end{lstlisting}
+        \end{lstlisting}
     \end {frame}
     
     \begin {frame}[containsverbatim]{GHC >= 7.10}
-     \begin{lstlisting}
+        \begin{lstlisting}
 class Applicative m => Monad m where  
     return :: a -> m a
     (>>=)  :: forall a b. m a 
@@ -63,6 +72,109 @@ class Applicative m => Monad m where
     (>>)   :: forall a b. m a 
                 -> m b -> m b
     fail   :: String -> m a
-     \end{lstlisting}
+        \end{lstlisting}
     \end {frame}
+    
+    \begin{frame}{Ошибка}
+    
+    \texttt{Test.hs:24:10:\\
+    No instance for (Applicative Prob)\\
+    ~~ arising from the superclasses of \\
+    ~~ an instance declaration\\
+    In the instance declaration for ‘Monad Prob’}
+
+    \end{frame}
+    
+    \section{Решение}
+    
+    \begin{frame}
+        \begin{enumerate}
+            \item Получить синтаксческое дерево программы 
+                (\textbf{parseModule}).
+            \item Проанализировать пролученное дерево на наличие 
+                экземляров класса \textbf{Monad} (\textbf{ClsInstDecl}).
+            \item Изменить нужным образом экземпляр класса \textbf{Monad}
+                и добавить, если требуется, экземпляры классов 
+                \textbf{Applicative} и \textbf{Functor}.
+            \item Сформировать новый файл с текстом программы
+                с помощью функций структурной печати 
+                (\textit{pretty-printing}).
+        \end{enumerate}
+    \end{frame}
+    
+    \begin{frame}[containsverbatim]{Ожидаемый результат}
+        \begin{lstlisting}
+instance Functor Foo where
+    fmap  = liftM
+
+instance Applicative Foo where
+    pure  = { - definition of `return` from the `Monad` instance - }
+    (<*>) = ap
+    (*>)  = {- definition of `>>` from the `Monad` instance -}
+
+instance Monad Foo where
+    return = pure
+    (>>)   = (*>)
+        \end{lstlisting}
+    \end{frame}
+    
+    \begin {frame}[containsverbatim]{import Control.Applicative}
+        \begin{lstlisting}
+importApplicative :: LImportDecl RdrName
+importApplicative = noLoc $ ImportDecl { 
+        ideclSourceSrc = Nothing
+      , ideclName      = noLoc 
+      $ mkModuleName "Control.Applicative"
+      , ideclPkgQual   = Nothing
+      , ideclSource    = False
+      , ideclSafe      = False
+      , ideclQualified = False
+      , ideclImplicit  = False
+      , ideclAs        = Nothing
+      , ideclHiding    = Nothing } 
+        \end{lstlisting}
+    \end {frame}
+    
+    \begin {frame}[containsverbatim]{instance Applicative}
+        \begin{lstlisting}
+instanceApplicative :: LHsType RdrName 
+                -> LHsBinds RdrName
+                    -> ClsInstDecl RdrName
+instanceApplicative insthead funs = 
+    ClsInstDecl { cid_poly_ty       = insthead
+                , cid_binds         = funs
+                , cid_sigs          = []
+                , cid_tyfam_insts   = []
+                , cid_datafam_insts = []
+                , cid_overlap_mode  = Nothing }
+        \end{lstlisting}
+    \end {frame}
+    
+    \section{Недостатки}
+    
+    \begin{frame}{Недостатки}
+        \begin{enumerate}
+            \item Комментарии в выходном файле не сохраняются.
+            \item Конструкции case ..  of на выходе синтаксически
+                неверны (ошибка в исходном коде компилятора).
+        \end{enumerate}
+    \end{frame}
+    
+    \begin{frame}[containsverbatim]{Ошибка!}
+        \begin{Parallel}{5cm}{5cm}
+            \ParallelLText{ 
+                \begin{lstlisting}
+f mp = case mp of {
+    Nothing -> 1
+    Just _ -> 2 }
+                \end{lstlisting}}
+            \ParallelRText { 
+                \texttt{ \\
+                    Test\_rewrite.hs:43:19:\\ 
+                       ~~ parse error on input ‘->’} }
+        \end{Parallel}
+    \end{frame}
+    
+    \section{Спасибо за внимание!}
+    
 \end {document}
