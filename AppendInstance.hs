@@ -22,6 +22,51 @@ import HsBinds
 
 import System.Environment
 
+takeFirstArg :: HsType RdrName -> HsType RdrName
+takeFirstArg (HsAppTy a b) = unLoc a
+
+takeSecondArg :: HsType RdrName -> HsType RdrName
+takeSecondArg (HsAppTy a b) = unLoc b
+
+putOutInnerHsType :: HsType RdrName -> HsType RdrName
+putOutInnerHsType (HsForAllTy a b c d e) = unLoc e
+
+hsTypeToString :: HsType RdrName -> String
+hsTypeToString = showSDocUnsafe . ppr
+
+mkRdrName :: String -> RdrName
+mkRdrName = mkVarUnqual . fsLit
+
+mkFunId :: String -> Located RdrName
+mkFunId = noLoc . mkRdrName
+
+applicative :: HsType RdrName
+applicative = HsTyVar (mkRdrName "Applicative")
+
+functor :: HsType RdrName
+functor = HsTyVar (mkRdrName "Functor")
+
+deflHsTyVarBndrs :: LHsTyVarBndrs RdrName
+deflHsTyVarBndrs = HsQTvs { hsq_kvs = []
+                          , hsq_tvs = [] }
+
+mkInstHead :: (HsType RdrName) -> (LHsType RdrName)
+mkInstHead mydata = noLoc (HsForAllTy Explicit Nothing 
+                    deflHsTyVarBndrs (noLoc [])
+                    (noLoc (HsAppTy (noLoc applicative) 
+                    (noLoc mydata))))
+
+instanceApplicative :: LHsType RdrName -> LHsBinds RdrName
+                                            -> ClsInstDecl RdrName
+instanceApplicative insthead funs = ClsInstDecl { 
+                                        cid_poly_ty       = insthead
+                                      , cid_binds         = funs
+                                      , cid_sigs          = []
+                                      , cid_tyfam_insts   = []
+                                      , cid_datafam_insts = []
+                                      , cid_overlap_mode  = Nothing
+                                            }
+
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
 getHsModDecls :: IO (Maybe (HsModule RdrName)) 
@@ -74,16 +119,48 @@ isClsInstDecl :: InstDecl RdrName -> Bool
 isClsInstDecl (ClsInstD _ ) = True
 isClsInstDecl _             = False
 
+whatClassIsInstance :: ClsInstDecl RdrName -> HsType RdrName
+whatClassIsInstance = takeFirstArg . putOutInnerHsType 
+                        . unLoc . cid_poly_ty
+
+takeUserData :: ClsInstDecl RdrName -> HsType RdrName
+takeUserData = takeSecondArg . putOutInnerHsType 
+                        . unLoc . cid_poly_ty
+
+isInstanceMonad :: ClsInstDecl RdrName -> Bool
+isInstanceMonad instD = 
+    ((hsTypeToString . whatClassIsInstance) instD) == "Monad"
+
+isInstanceApplicative :: ClsInstDecl RdrName -> Bool
+isInstanceApplicative instD = 
+   ((hsTypeToString . whatClassIsInstance) instD) == "Applicative"
+
+isInstanceFunctor :: ClsInstDecl RdrName -> Bool
+isInstanceFunctor instD = 
+    ((hsTypeToString . whatClassIsInstance) instD) == "Functor"
+
 -- "Pulls out" HsType (is contained in ClsInstDecl)
 getHsType :: IO (Maybe [ClsInstDecl RdrName])
-                                        -> IO (Maybe [String])
+                                        -> IO (Maybe [HsType RdrName])
 getHsType md = do
     mp <- md
     case mp of
         Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (deleteBrackets
-                                    . showSDocUnsafe . pprParendHsType
-                                    . unLoc . cid_poly_ty) mdl)
+        Just mdl -> return $ Just (map (unLoc . cid_poly_ty) mdl)
+
+{-isHsDocTy :: HsType RdrName -> Bool
+isHsDocTy (HsDocTy _ _) = True
+isHsDocTy _             = False
+
+showHsDocTy :: IO (Maybe [ClsInstDecl RdrName])
+                                        -> IO (Maybe [String])
+showHsDocTy = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (map (showSDocUnsafe . pprParendHsType
+                            . isHsDocTy
+                            . unLoc . cid_poly_ty) mdl)-}
 
 -- HsType is shown up inside of the brackets; 
 -- it is necessary to delete them
@@ -99,140 +176,3 @@ getHsBinds md = do
         Nothing  -> return Nothing
         Just mdl -> return $ Just (map ((map unLoc) . bagToList 
                                                 . cid_binds) mdl)
-
--- "Pulls" only the FunBinds' ids out of the HsBindLR
-isFunBind :: HsBindLR RdrName RdrName -> Bool
-isFunBind (FunBind _ _ _ _ _ _) = True
-isFunBind _                     = False
-
-getFunBindsIds :: IO (Maybe [[HsBindLR RdrName RdrName]])
-                    -> IO (Maybe [[String]])
-getFunBindsIds md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map ((map (rdrName2String . unLoc
-                                        . fun_id))
-                                        . filter isFunBind) mdl)
-
--- Shows the names of the functions that were described
--- inside of the Instance Declarations
-rdrName2String :: RdrName -> String
-rdrName2String nm = showSDocUnsafe $ pprOccName $ rdrNameOcc nm
-
--- "Pulls" the MatchGroup out of the FunBind
-getMatcheGroup :: IO (Maybe [[HsBindLR RdrName RdrName]])
-                -> IO (Maybe [[MatchGroup RdrName (LHsExpr RdrName)]])
-getMatcheGroup md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map ((map fun_matches)
-                                            . filter isFunBind) mdl)
-
-getLMatches :: IO (Maybe [[MatchGroup RdrName (LHsExpr RdrName)]])
-                -> IO (Maybe [[[LMatch RdrName (LHsExpr RdrName)]]])
-getLMatches md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (map mg_alts) mdl)
-
-getMatches :: IO (Maybe [[[LMatch RdrName (LHsExpr RdrName)]]])
-                -> IO (Maybe [[[Match RdrName (LHsExpr RdrName)]]])
-getMatches md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (map (map unLoc)) mdl)
-
-getLPats :: IO (Maybe [[[LMatch RdrName (LHsExpr RdrName)]]])
-            -> IO (Maybe [[[[LPat RdrName]]]])
-getLPats md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (map (map hsLMatchPats)) mdl)
-
-lPatsToString :: IO (Maybe [[[[LPat RdrName]]]])
-                -> IO (Maybe [[[[String]]]])
-lPatsToString md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (map (map (map (showSDocUnsafe
-                                            . pprParendLPat))))mdl)
-
--- Это гарды
-getGRHSs :: IO (Maybe [[[Match RdrName (LHsExpr RdrName)]]])
-                -> IO (Maybe [[[GRHSs RdrName (LHsExpr RdrName)]]])
-getGRHSs md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (map (map m_grhss)) mdl)
-
-
-
-getFunExprs :: IO (Maybe [[HsBindLR RdrName RdrName]])
-                    -> IO (Maybe [[String]])
-getFunExprs md = undefined {-do
-    mp <- md
-    case mp of 
-        Nohing   -> return Nothing
-        Just mdl -> return $ Just (map ((map (rdrName2String . unLoc
-                                        . fun_matchess))
-                                        . filter isFunBind) mdl)-}
-
-getOneLHsExpr :: MatchGroup RdrName (LHsExpr RdrName) -> LHsExpr RdrName
-getOneLHsExpr (MG _ _ _ _) = undefined
-
-getFunDeclTypes :: IO (Maybe [[HsBindLR RdrName RdrName]])
-                    -> IO (Maybe [[Bool]])
-getFunDeclTypes md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map ((map fun_infix)
-                                            .filter isFunBind) mdl)
-
-bindsToString :: IO (Maybe [[HsBindLR RdrName RdrName]])
-                -> IO (Maybe [[String]])
-bindsToString md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (map (showSDocUnsafe 
-                                                . ppr_monobind)) mdl)
-
--- The following functions are the superpositions
--- of the previous funtions
-
--- The list of Instances' headers: <type> <name>
-getListOfHsTypes :: IO (Maybe (HsModule RdrName)) -> IO (Maybe [String])
-getListOfHsTypes = getHsType . getClsInstDecl . getInstDecls
-                             . getHsDecls . getHsModDecls
-
-getListOfHsBinds :: IO (Maybe (HsModule RdrName))
-                            -> IO (Maybe [[HsBindLR RdrName RdrName]])
-getListOfHsBinds = getHsBinds . getClsInstDecl 
-                   . getInstDecls . getHsDecls . getHsModDecls
-
--- The list of names of the fuctions that are declared in the 
--- instances
-getListsOfFunNames :: IO (Maybe (HsModule RdrName)) 
-                                    -> IO (Maybe [[String]])
-getListsOfFunNames = getFunBindsIds . getListOfHsBinds
-
--- The list of function declaration types: True -- infix,
--- False -- not infix
-getListsOfFunDeclTypes :: IO (Maybe (HsModule RdrName)) 
-                                    -> IO (Maybe [[Bool]])
-getListsOfFunDeclTypes = getFunDeclTypes . getListOfHsBinds
-
--- The list of Pats (lists of finctions' arguments)
-getListsOfLPats :: IO (Maybe (HsModule RdrName)) 
-                                    -> IO (Maybe [[[[String]]]])
-getListsOfLPats = lPatsToString . getLPats . getLMatches
-                        . getMatcheGroup . getListOfHsBinds
-

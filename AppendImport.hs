@@ -1,4 +1,3 @@
--- Contains the functions that "pull out" the modules' imports
 module AppendImport where
 
 import DynFlags
@@ -14,35 +13,25 @@ import StringBuffer
 import qualified GHC
 import HsDecls
 import Module
+import BasicTypes
 
 import Data.List
 
 import System.Environment
 
-getLImortDecls :: IO (Maybe (HsModule RdrName)) 
-                                -> IO (Maybe [LImportDecl RdrName])
-getLImortDecls md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (hsmodImports mdl)
+addImpAppl :: HsModule RdrName -> HsModule RdrName
+addImpAppl (HsModule name exps imps decls depmes hadmodhead) 
+    = (HsModule name exps (importApplicative : imps) decls 
+                                                    depmes hadmodhead)
 
-
-getImportDecls :: IO (Maybe [LImportDecl RdrName]) 
-                                    -> IO (Maybe [ImportDecl RdrName])
-getImportDecls md = do
-    mp <- md
-    case mp of
-        Nothing -> return Nothing
-        Just mdl -> return $ Just (map unLoc mdl)
-
-getModulesNames :: [ImportDecl RdrName] -> [String]
-getModulesNames = map (moduleNameString.unLoc.ideclName)
-
-applicIsImported :: [String] -> Bool
-applicIsImported xs = "Control.Applicative" `elem` xs
-
-appendImport :: [String] -> [String]
-appendImport xs
-        | applicIsImported xs == True   = xs
-        | otherwise                     = xs ++ ["Control.Applicative"]
+importApplicative :: LImportDecl RdrName
+importApplicative = noLoc $ ImportDecl { ideclSourceSrc = Nothing
+                                       , ideclName      = noLoc 
+                                $ mkModuleName "Control.Applicative"
+                                       , ideclPkgQual   = Nothing
+                                       , ideclSource    = False
+                                       , ideclSafe      = False
+                                       , ideclQualified = False
+                                       , ideclImplicit  = False
+                                       , ideclAs        = Nothing
+                                       , ideclHiding    = Nothing } 

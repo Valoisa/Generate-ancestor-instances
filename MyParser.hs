@@ -28,3 +28,20 @@ parseHaskell file = do
     return $ case unP Parser.parseModule (mkPState dynFl sbuf srcloc) of
         POk _ (L _ mdl) -> Just mdl
         PFailed _ _     -> Nothing
+
+parseToLHsExpr :: String -> IO (Maybe (HsExpr RdrName))
+parseToLHsExpr expr = do
+    initStaticOpts
+    dynFl <- GHC.runGhc (Just libdir) GHC.getSessionDynFlags 
+    let srcloc = mkRealSrcLoc (mkFastString "log.hs") 1 1
+    return $ case unP Parser.parseExpression (mkPState dynFl 
+                                  (stringToStringBuffer expr) noSrcLoc) of
+        POk _ (L _ hsexpr) -> Just hsexpr
+        PFailed _ _        -> Nothing
+
+showParsedString :: IO (Maybe (HsExpr RdrName)) -> IO String
+showParsedString pstr = do
+    str <- pstr
+    case str of
+        Just res -> return $ showSDocUnsafe $ ppr res
+        Nothing  -> return $ "Nothing(((("
