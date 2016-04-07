@@ -263,6 +263,7 @@ instance Monad Probe where
     
     \begin{frame}{Задача 4: формирование выходного файла}
         \begin{itemize}
+        \itemsep=.6cm
         \item \textbf{Outputable} --- класс типов, описанный в GHC API,
             экземпляры которого поддерживают функции структурной печати
             (pretty-printing).
@@ -272,12 +273,19 @@ instance Monad Probe where
         \end{itemize}
     \end{frame}
     
-    \begin{frame}{Недостатки}
+    \begin{frame}[containsverbatim]{Недостатки}
         \begin{enumerate}\itemsep=1cm
             \item Комментарии в выходном файле не сохраняются.
             \item Конструкции \lstinline{case ..  of} на выходе синтаксически
                 неверны (ошибка в исходном коде компилятора).
         \end{enumerate}
+            \begin{examplefirst}{Синтаксическая ошибка:}
+                \begin{lstlisting}
+f mp = case mp of {
+           Nothing -> 1
+           Just _ -> 2 }
+                \end{lstlisting}
+            \end{examplefirst}
     \end{frame}
 
     \begin{frame}{Результаты работы}
