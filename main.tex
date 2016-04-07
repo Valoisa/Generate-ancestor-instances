@@ -32,6 +32,14 @@
 \setbeamertemplate{footline}[frame number]
 % Небольшие номера слайдов формата i/N
 
+\usepackage{xcolor}
+\usepackage{hyperref}
+\definecolor{linkcolor}{HTML}{799B03} % цвет ссылок
+\definecolor{urlcolor}{HTML}{799B03} % цвет гиперссылок
+ 
+\hypersetup{pdfstartview=FitH,  linkcolor=linkcolor, %
+urlcolor=urlcolor, colorlinks=true}
+
 \title{Генерация экземпляров классов типов \\ 
     на основе экземпляров производных классов в языке Haskell}
 \author{\small О.\,Е.~Филиппская }
@@ -85,55 +93,77 @@
                 с помощью функций структурной печати 
                 (\textit{pretty-printing}).
         \end{enumerate}
+        \begin{examplefirst}{Метод решения}
+        \begin{itemize}
+        \item GHC API --- программный интерфейс компилятора
+        \end{itemize}
+        \end{examplefirst}
     \end{frame}
     
-    \begin{frame}[containsverbatim]{Ожидаемый результат}
-        \begin{lstlisting}
-instance Functor Foo where
-    fmap  = liftM
-
-instance Applicative Foo where
-    pure  = {- `return` from `Monad` instance -}
-    (<*>) = ap
-    (*>)  = {- `>>` from `Monad` instance -}
-
-instance Monad Foo where
-    return = pure
-    (>>)   = (*>)
-        \end{lstlisting}
+    \begin{frame}{Задача 1: получить синтаксическое дерево программы}
+        <дерево>
     \end{frame}
     
-    \begin {frame}[containsverbatim]{import Control.Applicative}
-        \begin{lstlisting}
-importApplicative :: LImportDecl RdrName
-importApplicative = noLoc $ ImportDecl { 
-        ideclSourceSrc = Nothing
-      , ideclName      = noLoc 
-      $ mkModuleName "Control.Applicative"
-      , ideclPkgQual   = Nothing
-      , ideclSource    = False
-      , ideclSafe      = False
-      , ideclQualified = False
-      , ideclImplicit  = False
-      , ideclAs        = Nothing
-      , ideclHiding    = Nothing } 
-        \end{lstlisting}
+    \begin{frame}{Задача 2: отфильтровать экземпляры монады}
+    
+    \end{frame}
+    
+    \begin {frame}{Задача 3: генерация экземпляров Applicative}
+         <Как импорт модуля видит компилятор>
     \end {frame}
     
-    \begin {frame}[containsverbatim]{instance Applicative}
-        \begin{lstlisting}
-instanceApplicative :: LHsType RdrName 
-                -> LHsBinds RdrName
-                    -> ClsInstDecl RdrName
-instanceApplicative insthead funs = 
-    ClsInstDecl { cid_poly_ty       = insthead
-                , cid_binds         = funs
-                , cid_sigs          = []
-                , cid_tyfam_insts   = []
-                , cid_datafam_insts = []
-                , cid_overlap_mode  = Nothing }
-        \end{lstlisting}
+    \begin {frame}{Задача 3: генерация экземпляров Applicative}
+        <как экземпляр аппликатива видит компилятор>
     \end {frame}
+    
+    \begin{frame}[containsverbatim]{Задача 3: генерация экземпляров}
+    \begin{examplefirst}{Пользовательский тип}
+        \begin{lstlisting}
+newtype Prob a = Prob { getProb ::
+                    [(a, Rational)] }
+        \end{lstlisting}
+    \end{examplefirst}
+    
+    \begin{examplefirst}{Экземпляр Monad}
+        \begin{lstlisting}
+instance Monad Prob where  
+    return x = Prob [(x,1%1)]  
+    m >>= f  = flatten (fmap f m)
+    x >> y   = x >>= \_ -> y
+        \end{lstlisting}
+    \end{examplefirst}
+
+    \end{frame}
+    
+    \begin{frame}[containsverbatim]{Задача 3: генерация экземпляров Applicative}
+        \begin{examplefirst}{Ожидаемый результат}
+            \begin{lstlisting}
+instance Functor Prob where
+    fmap   = liftM
+
+instance Applicative Prob where
+    pure   = Prob [(x,1%1)]
+    (<*>)  = ap
+    x *> y = x >>= \_ -> y
+
+instance Monad Probe where
+    return   = pure
+    (>>)     = (*>)  
+    m >>= f  = flatten (fmap f m)
+            \end{lstlisting}
+        \end{examplefirst}
+    \end{frame}
+    
+    \begin{frame}{Задача 4: формирование выходного файла}
+        \begin{itemize}
+        \item \textbf{Outputable} --- класс типов, описанный в GHC API,
+            экземпляры которого поддерживают функции структурной печати
+            (pretty-printing).
+        \item \textbf{HsModule} является экземляром класса 
+        \textbf{Outputable}.
+        \item \lstinline{ppr :: Outputable a => a -> SDoc}
+        \end{itemize}
+    \end{frame}
     
     \begin{frame}{Недостатки}
         \begin{enumerate}\itemsep=1cm
@@ -145,17 +175,23 @@ instanceApplicative insthead funs =
 
     \begin{frame}{Результаты работы}
         \begin{enumerate}
-            \item Получить синтаксическое дерево программы 
+            \item Получено синтаксическое дерево программы 
                 (\textbf{parseModule}).
-            \item Проанализировать пролученное дерево на наличие 
+            \item Полученное дерево проанализировано на наличие 
                 экземпляров класса \textbf{Monad} (\textbf{ClsInstDecl}).
-            \item Изменить нужным образом экземпляр класса \textbf{Monad}
-                и добавить, если требуется, экземпляры классов 
+            \item Изменены нужным образом экземпляр класса \textbf{Monad}
+                и добавлены экземпляры классов 
                 \textbf{Applicative} и \textbf{Functor}.
-            \item Сформировать новый файл с текстом программы
+            \item Сформирован новый файл с текстом программы
                 с помощью функций структурной печати 
-                (\textit{pretty-printing}).
+                (\textbf{ppr}).
         \end{enumerate}
+        
+        \begin{examplefirst}{С работой над утилитой можно ознакомиться:}
+            \begin{itemize}
+            \item \url{https://github.com/Valoisa/Generate-ancestor-instances/tree/addinginstances}
+            \end{itemize}
+        \end{examplefirst}
     \end{frame}
     
 \end {document}
