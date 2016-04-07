@@ -102,8 +102,39 @@ urlcolor=urlcolor, colorlinks=true}
         \end{examplefirst}
     \end{frame}
     
-    \begin{frame}{Задача 1: получить синтаксическое дерево программы}
+    \begin{frame}{Задача 1: получить синтаксическое дерево}
     \tikzstyle{every node}=[shape=rectangle, rounded corners,%
+    top color=orange!75!black,%
+    bottom color=orange!75!black, text=white, anchor=west]
+    \tikzstyle{selected}=[shape=rectangle, rounded corners,%
+    top color=green!75!black,%
+    bottom color=green!75!black, text=white]
+    \tikzstyle{optional}=[dashed,fill=gray!50]
+        \begin{tikzpicture}[%
+  grow via three points={one child at (0.5,-0.7) and
+  two children at (0.5,-0.7) and (0.5,-1.4)},
+  edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
+  \node {hsModule}
+    child { node {hsmodName}}		
+    child { node {hsmodExports}}
+    child { node {hsmodImports}}
+    child { node {hsmodDecls}
+      child { node {InstD}}
+      child { node {TyClD}}
+      child { node {DerivD}}      
+      child { node {$\ldots$}}
+    }
+    child [missing] {}				
+    child [missing] {}				
+    child [missing] {}				
+    child [missing] {}				
+    child { node {hsmodDeprecMessage}}
+    child { node {hsmodHaddockModHeader}};
+      \end{tikzpicture}
+    \end{frame}
+    
+    \begin{frame}{Задача 2: отфильтровать экземпляры Monad}
+        \tikzstyle{every node}=[shape=rectangle, rounded corners,%
     top color=orange!75!black,%
     bottom color=orange!75!black, text=white, anchor=west]
     \tikzstyle{selected}=[shape=rectangle, rounded corners,%
@@ -119,9 +150,14 @@ urlcolor=urlcolor, colorlinks=true}
     child { node {hsmodExports}}
     child { node {hsmodImports }}
     child { node [selected] {hsmodDecls}
-      child { node [selected] {InstD}}
-      child { node [selected] {TyClD}}
-      child { node [selected] {DerivD}}      
+      child { node [selected] {InstD}
+        child { node [selected] {ClsInstD}}
+        child { node [selected] {DataFamInstD}}
+        child { node [selected] {TyFamInstD}}  
+      }     
+      child [missing] {}				
+      child [missing] {}				
+      child [missing] {}				    
       child { node [selected] {$\ldots$}}
     }
     child [missing] {}				
@@ -131,18 +167,60 @@ urlcolor=urlcolor, colorlinks=true}
     child { node {hsmodDeprecMessage}}
     child { node {hsmodHaddockModHeader}};
       \end{tikzpicture}
-    \end{frame}
-    
-    \begin{frame}{Задача 2: отфильтровать экземпляры монады}
     
     \end{frame}
     
     \begin {frame}{Задача 3: генерация экземпляров Applicative}
-         <Как импорт модуля видит компилятор>
+        \lstinline{import Control.Applicative}
+    \tikzstyle{every node}=[shape=rectangle, rounded corners,%
+    top color=orange!75!black,%
+    bottom color=orange!75!black, text=white, anchor=west]
+    \tikzstyle{selected}=[shape=rectangle, rounded corners,%
+    top color=green!75!black,%
+    bottom color=green!75!black, text=white]
+    \tikzstyle{optional}=[dashed,fill=gray!50]
+        \begin{tikzpicture}[%
+  grow via three points={one child at (0.5,-0.7) and
+  two children at (0.5,-0.7) and (0.5,-1.4)},
+  edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
+  \node {ImportDecl}
+    child { node {ideclName}}
+    child { node {ideclPkgQual}}
+    child { node {ideclQualified}}
+    child { node {ideclImplicit}}
+    child { node {$\ldots$}};
+      \end{tikzpicture}
     \end {frame}
     
     \begin {frame}{Задача 3: генерация экземпляров Applicative}
-        <как экземпляр аппликатива видит компилятор>
+    \tikzstyle{every node}=[shape=rectangle, rounded corners,%
+    top color=orange!75!black,%
+    bottom color=orange!75!black, text=white, anchor=west]
+    \tikzstyle{selected}=[shape=rectangle, rounded corners,%
+    top color=green!75!black,%
+    bottom color=green!75!black, text=white]
+    \tikzstyle{optional}=[dashed,fill=gray!50]
+        \begin{tikzpicture}[%
+  grow via three points={one child at (0.5,-0.7) and
+  two children at (0.5,-0.7) and (0.5,-1.4)},
+  edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
+  \node {ClsInstDecl}
+    child { node {cid\_poly\_ty}}
+    child { node {cid\_binds}
+        child { node {FunBind}
+            child { node {fun\_id}}
+            child { node {fun\_infix}}
+            child { node {fun\_matches}}
+            child { node {$\ldots$}}
+        }
+    }
+    child [missing] {}				
+    child [missing] {}				
+    child [missing] {}				
+    child [missing] {}				
+    child [missing] {}				
+    child { node {$\ldots$}};
+      \end{tikzpicture}
     \end {frame}
     
     \begin{frame}[containsverbatim]{Задача 3: генерация экземпляров}
@@ -188,7 +266,7 @@ instance Monad Probe where
         \item \textbf{Outputable} --- класс типов, описанный в GHC API,
             экземпляры которого поддерживают функции структурной печати
             (pretty-printing).
-        \item \textbf{HsModule} является экземляром класса 
+        \item \textbf{HsModule} является экземпляром класса 
         \textbf{Outputable}.
         \item \lstinline{ppr :: Outputable a => a -> SDoc}
         \end{itemize}
@@ -216,9 +294,9 @@ instance Monad Probe where
                 (\textbf{ppr}).
         \end{enumerate}
         
-        \begin{examplefirst}{С работой над утилитой можно ознакомиться:}
+        \begin{examplefirst}{Репозиторий с исходными кодами:}
             \begin{itemize}
-            \item \small{\url{https://github.com/Valoisa/Generate-ancestor-instances/tree/addinginstances}}
+            \item \small{\url{https://github.com/Valoisa/Generate-ancestor-instances}}
             \end{itemize}
         \end{examplefirst}
     \end{frame}
