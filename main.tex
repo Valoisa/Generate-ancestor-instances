@@ -9,6 +9,8 @@
 \usepackage{paratype} % шрифты
 \usepackage{wrapfig}
 \usepackage{parallel}
+\usepackage{tikz}
+\usetikzlibrary{mindmap,trees}
 
 \usepackage{listings}
 \lstset{
@@ -101,7 +103,34 @@ urlcolor=urlcolor, colorlinks=true}
     \end{frame}
     
     \begin{frame}{Задача 1: получить синтаксическое дерево программы}
-        <дерево>
+    \tikzstyle{every node}=[shape=rectangle, rounded corners,%
+    top color=orange!75!black,%
+    bottom color=orange!75!black, text=white, anchor=west]
+    \tikzstyle{selected}=[shape=rectangle, rounded corners,%
+    top color=green!75!black,%
+    bottom color=green!75!black, text=white]
+    \tikzstyle{optional}=[dashed,fill=gray!50]
+        \begin{tikzpicture}[%
+  grow via three points={one child at (0.5,-0.7) and
+  two children at (0.5,-0.7) and (0.5,-1.4)},
+  edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
+  \node {hsModule}
+    child { node {hsmodName}}		
+    child { node {hsmodExports}}
+    child { node {hsmodImports }}
+    child { node [selected] {hsmodDecls}
+      child { node [selected] {InstD}}
+      child { node [selected] {TyClD}}
+      child { node [selected] {DerivD}}      
+      child { node [selected] {$\ldots$}}
+    }
+    child [missing] {}				
+    child [missing] {}				
+    child [missing] {}				
+    child [missing] {}				
+    child { node {hsmodDeprecMessage}}
+    child { node {hsmodHaddockModHeader}};
+      \end{tikzpicture}
     \end{frame}
     
     \begin{frame}{Задача 2: отфильтровать экземпляры монады}
@@ -189,7 +218,7 @@ instance Monad Probe where
         
         \begin{examplefirst}{С работой над утилитой можно ознакомиться:}
             \begin{itemize}
-            \item \url{https://github.com/Valoisa/Generate-ancestor-instances/tree/addinginstances}
+            \item \small{\url{https://github.com/Valoisa/Generate-ancestor-instances/tree/addinginstances}}
             \end{itemize}
         \end{examplefirst}
     \end{frame}
