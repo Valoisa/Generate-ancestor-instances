@@ -22,6 +22,8 @@
 }
 \usetheme {metropolis}
 
+\newcommand{\smallcode}{\footnotesize}
+
 \newenvironment<>{examplefirst}[1]{%
   \setbeamercolor{block title}{fg=white,bg=orange!75!black}%
   \begin{block}#2{#1}}{\end{block}}
@@ -38,11 +40,11 @@
 \usepackage{hyperref}
 \definecolor{linkcolor}{HTML}{799B03} % цвет ссылок
 \definecolor{urlcolor}{HTML}{799B03} % цвет гиперссылок
- 
+
 \hypersetup{pdfstartview=FitH,  linkcolor=linkcolor, %
 urlcolor=urlcolor, colorlinks=true}
 
-\title{Генерация экземпляров классов типов \\ 
+\title{Генерация экземпляров классов типов \\
     на основе экземпляров производных классов в языке Haskell}
 \author{\small О.\,Е.~Филиппская }
 \institute{\textit{Направление подготовки:} Прикладная математика и информатика\\
@@ -61,9 +63,9 @@ urlcolor=urlcolor, colorlinks=true}
 
 \begin {document}
     \maketitle
-        
+
     \begin {frame} {Цель работы}
-    
+
     \begin {examplefirst}{Проблема}
     \begin{itemize}
         \item Applicative Monad Proposal (AMP) вносит предложение
@@ -72,8 +74,8 @@ urlcolor=urlcolor, colorlinks=true}
         \item Нарушена обратная совместимость.
     \end{itemize}
     \end {examplefirst}
-    
-    
+
+
     \begin {examplefirst} {Цель}
     \begin{itemize}
     \item Создать программное средство, которое восстановит
@@ -82,17 +84,17 @@ urlcolor=urlcolor, colorlinks=true}
     \end {examplefirst}
 
     \end {frame}
-    
+
     \begin{frame}{Постановка задачи}
         \begin{enumerate}
             \item Получить синтаксическое дерево программы.
-            \item Отфильтровать узлы, соответствующие 
+            \item Отфильтровать узлы, соответствующие
                 экземплярам класса \textbf{Monad}.
             \item Изменить нужным образом экземпляр класса \textbf{Monad}
-                и добавить, если требуется, экземпляры классов 
+                и добавить, если требуется, экземпляры классов
                 \textbf{Applicative} и \textbf{Functor}.
             \item Сформировать новый файл с текстом программы
-                с помощью функций структурной печати 
+                с помощью функций структурной печати
                 (\textit{pretty-printing}).
         \end{enumerate}
         \begin{examplefirst}{Метод решения}
@@ -101,7 +103,7 @@ urlcolor=urlcolor, colorlinks=true}
         \end{itemize}
         \end{examplefirst}
     \end{frame}
-    
+
     \begin{frame}{Задача 1: получить синтаксическое дерево}
     \tikzstyle{every node}=[shape=rectangle, rounded corners,%
     top color=orange!75!black,%
@@ -115,24 +117,24 @@ urlcolor=urlcolor, colorlinks=true}
   two children at (0.5,-0.7) and (0.5,-1.4)},
   edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
   \node {hsModule}
-    child { node {hsmodName}}		
+    child { node {hsmodName}}
     child { node {hsmodExports}}
     child { node {hsmodImports}}
     child { node {hsmodDecls}
       child { node {InstD}}
       child { node {TyClD}}
-      child { node {DerivD}}      
+      child { node {DerivD}}
       child { node {$\ldots$}}
     }
-    child [missing] {}				
-    child [missing] {}				
-    child [missing] {}				
-    child [missing] {}				
+    child [missing] {}
+    child [missing] {}
+    child [missing] {}
+    child [missing] {}
     child { node {hsmodDeprecMessage}}
     child { node {hsmodHaddockModHeader}};
       \end{tikzpicture}
     \end{frame}
-    
+
     \begin{frame}{Задача 2: отфильтровать экземпляры Monad}
         \tikzstyle{every node}=[shape=rectangle, rounded corners,%
     top color=orange!75!black,%
@@ -146,30 +148,30 @@ urlcolor=urlcolor, colorlinks=true}
   two children at (0.5,-0.7) and (0.5,-1.4)},
   edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
   \node {hsModule}
-    child { node {hsmodName}}		
+    child { node {hsmodName}}
     child { node {hsmodExports}}
     child { node {hsmodImports }}
     child { node [selected] {hsmodDecls}
       child { node [selected] {InstD}
         child { node [selected] {ClsInstD}}
         child { node {DataFamInstD}}
-        child { node {TyFamInstD}}  
-      }     
-      child [missing] {}				
-      child [missing] {}				
-      child [missing] {}				    
+        child { node {TyFamInstD}}
+      }
+      child [missing] {}
+      child [missing] {}
+      child [missing] {}
       child { node [selected] {$\ldots$}}
     }
-    child [missing] {}				
-    child [missing] {}				
-    child [missing] {}				
-    child [missing] {}				
+    child [missing] {}
+    child [missing] {}
+    child [missing] {}
+    child [missing] {}
     child { node {hsmodDeprecMessage}}
     child { node {hsmodHaddockModHeader}};
       \end{tikzpicture}
-    
+
     \end{frame}
-    
+
     \begin {frame}{Задача 3: генерация экземпляров Applicative}
         \lstinline{import Control.Applicative}
     \tikzstyle{every node}=[shape=rectangle, rounded corners,%
@@ -191,7 +193,7 @@ urlcolor=urlcolor, colorlinks=true}
     child { node {$\ldots$}};
       \end{tikzpicture}
     \end {frame}
-    
+
     \begin {frame}{Задача 3: генерация экземпляров Applicative}
     \tikzstyle{every node}=[shape=rectangle, rounded corners,%
     top color=orange!75!black,%
@@ -214,65 +216,72 @@ urlcolor=urlcolor, colorlinks=true}
             child { node {$\ldots$}}
         }
     }
-    child [missing] {}				
-    child [missing] {}				
-    child [missing] {}				
-    child [missing] {}				
-    child [missing] {}				
+    child [missing] {}
+    child [missing] {}
+    child [missing] {}
+    child [missing] {}
+    child [missing] {}
     child { node {$\ldots$}};
       \end{tikzpicture}
     \end {frame}
-    
-    \begin{frame}[containsverbatim]{Задача 3: генерация экземпляров}
+
+    \begin{frame}[containsverbatim]{Генерация экземпляров Applicative: пример}
+
+    \begin{columns}
+        \column{6cm}
+
     \begin{examplefirst}{Пользовательский тип}
-        \begin{lstlisting}
-newtype Prob a = Prob { getProb ::
-                    [(a, Rational)] }
-        \end{lstlisting}
-    \end{examplefirst}
-    
-    \begin{examplefirst}{Экземпляр Monad}
-        \begin{lstlisting}
-instance Monad Prob where  
-    return x = Prob [(x,1%1)]  
-    m >>= f  = flatten (fmap f m)
-    x >> y   = x >>= \_ -> y
+        \begin{lstlisting}[basicstyle=\smallcode]
+newtype Prob a =
+    Prob { getProb ::
+           [(a, Rational)] }
         \end{lstlisting}
     \end{examplefirst}
 
-    \end{frame}
-    
-    \begin{frame}[containsverbatim]{Задача 3: генерация экземпляров Applicative}
+    \begin{examplefirst}{Экземпляр Monad}
+        \begin{lstlisting}[basicstyle=\smallcode]
+instance Monad Prob where
+  return x = Prob [(x,1%1)]
+  m >>= f  = flatten
+               (fmap f m)
+  x >> y   = x >>= \_ -> y
+        \end{lstlisting}
+    \end{examplefirst}
+
+        \column{6cm}
         \begin{examplefirst}{Ожидаемый результат}
-            \begin{lstlisting}
+            \begin{lstlisting}[basicstyle=\smallcode]
 instance Functor Prob where
-    fmap   = liftM
+  fmap   = liftM
 
 instance Applicative Prob where
-    pure   = Prob [(x,1%1)]
-    (<*>)  = ap
-    x *> y = x >>= \_ -> y
+  pure   = Prob [(x,1%1)]
+  (<*>)  = ap
+  x *> y = x >>= \_ -> y
 
 instance Monad Probe where
-    return   = pure
-    (>>)     = (*>)  
-    m >>= f  = flatten (fmap f m)
+  return   = pure
+  (>>)     = (*>)
+  m >>= f  = flatten
+               (fmap f m)
             \end{lstlisting}
         \end{examplefirst}
+    \end{columns}
+
     \end{frame}
-    
+
     \begin{frame}{Задача 4: формирование выходного файла}
         \begin{itemize}
         \itemsep=.6cm
         \item \textbf{Outputable} --- класс типов, описанный в GHC API,
             экземпляры которого поддерживают функции структурной печати
             (pretty-printing).
-        \item \textbf{HsModule} имеет экземпляр класса 
+        \item \textbf{HsModule} имеет экземпляр класса
         \textbf{Outputable}.
         \item \lstinline{ppr :: Outputable a => a -> SDoc}
         \end{itemize}
     \end{frame}
-    
+
     \begin{frame}[containsverbatim]{Недостатки}
         \begin{enumerate}\itemsep=1cm
             \item Комментарии в выходном файле не сохраняются.
@@ -282,7 +291,7 @@ instance Monad Probe where
             \begin{examplefirst}{Синтаксическая ошибка:}
                 \begin{lstlisting}
 f mp = case mp of {
-           Nothing -> 1
+           Nothing -> 1  -- missing ;
            Just _ -> 2 }
                 \end{lstlisting}
             \end{examplefirst}
@@ -290,23 +299,23 @@ f mp = case mp of {
 
     \begin{frame}{Результаты работы}
         \begin{enumerate}
-            \item Получено синтаксическое дерево программы 
+            \item Получено синтаксическое дерево программы
                 (\textbf{parseModule}).
-            \item Полученное дерево проанализировано на наличие 
+            \item Полученное дерево проанализировано на наличие
                 экземпляров класса \textbf{Monad} (\textbf{ClsInstDecl}).
             \item Изменены нужным образом экземпляр класса \textbf{Monad}
-                и добавлены экземпляры классов 
+                и добавлены экземпляры классов
                 \textbf{Applicative} и \textbf{Functor}.
             \item Сформирован новый файл с текстом программы
-                с помощью функций структурной печати 
+                с помощью функций структурной печати
                 (\textbf{ppr}).
         \end{enumerate}
-        
+
         \begin{examplefirst}{Репозиторий с исходными кодами:}
             \begin{itemize}
             \item \small{\url{https://github.com/Valoisa/Generate-ancestor-instances}}
             \end{itemize}
         \end{examplefirst}
     \end{frame}
-    
+
 \end {document}
