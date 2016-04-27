@@ -223,6 +223,9 @@ urlcolor=urlcolor, colorlinks=true}
     child [missing] {}
     child { node {$\ldots$}};
       \end{tikzpicture}
+              \begin{examplefirst}{\small{\textit{Более подробно см.:}}}
+            \small{\url{https://ghc.haskell.org/trac/ghc/wiki/Migration/7.10}}
+        \end{examplefirst}
     \end {frame}
 
     \begin{frame}[containsverbatim]{Генерация экземпляров Applicative: пример}
@@ -279,6 +282,7 @@ instance Monad Probe where
         \item \textbf{HsModule} имеет экземпляр класса
         \textbf{Outputable}.
         \item \lstinline{ppr :: Outputable a => a -> SDoc}
+        \item \lstinline{showSDocUnsafe :: SDoc -> String}
         \end{itemize}
     \end{frame}
 
