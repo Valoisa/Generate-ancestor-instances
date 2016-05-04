@@ -57,10 +57,16 @@ mkInstance insthead funs = ClsInstDecl {
                                       , cid_datafam_insts = []
                                       , cid_overlap_mode  = Nothing
                                             }
-mkBind :: String -> String -> HsBindLR RdrName RdrName
-mkBind idL idR = VarBind { var_id     = mkRdrName idL
+mkBind :: String -> String -> LHsBindLR RdrName RdrName
+mkBind idL idR = noLoc $ 
+                VarBind { var_id     = mkRdrName idL
                          , var_rhs    = unMaybe (parseToLHsExpr idR)
                          , var_inline = False }
+
+mkCIDBindsForInstMonad :: LHsBindLR RdrName RdrName -> LHsBinds RdrName
+mkCIDBindsForInstMonad userbind = listToBag [ (mkBind "return" "pure")
+                                            , (mkBind "(>>)" "(*>)")
+                                            , userbind]
 
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
