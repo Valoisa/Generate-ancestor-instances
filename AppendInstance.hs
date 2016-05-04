@@ -109,6 +109,7 @@ getClsInstDecl md = do
         Just mdl -> return $ Just (map cid_inst 
                                             $ filter isClsInstDecl mdl)
 
+
 -- Checks if it is a class instance declaration
 isClsInstDecl :: InstDecl RdrName -> Bool
 isClsInstDecl (ClsInstD _ ) = True
@@ -133,6 +134,30 @@ isInstanceApplicative instD =
 isInstanceFunctor :: ClsInstDecl RdrName -> Bool
 isInstanceFunctor instD = 
     ((hsTypeToString . whatClassIsInstance) instD) == "Functor"
+
+getInstsMonad :: IO (Maybe [ClsInstDecl RdrName])
+                                    -> IO (Maybe [ClsInstDecl RdrName])
+getInstsMonad md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (filter isInstanceMonad mdl)
+
+getInstsApplicative :: IO (Maybe [ClsInstDecl RdrName])
+                                    -> IO (Maybe [ClsInstDecl RdrName])
+getInstsApplicative md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (filter isInstanceApplicative mdl)
+
+getInstsFunctor :: IO (Maybe [ClsInstDecl RdrName])
+                                    -> IO (Maybe [ClsInstDecl RdrName])
+getInstsFunctor md = do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return $ Just (filter isInstanceFunctor mdl)
 
 -- "Pulls out" HsType (is contained in ClsInstDecl)
 getHsType :: IO (Maybe [ClsInstDecl RdrName])
