@@ -21,26 +21,9 @@ import HsTypes
 import HsBinds
 
 import MyParser
+import Manipulation
 
 import System.Environment
-
-unMaybe :: Maybe a -> a
-unMaybe (Just b) = b
-
-takeFirstArg :: HsType RdrName -> HsType RdrName
-takeFirstArg (HsAppTy a b) = unLoc a
-
-takeSecondArg :: HsType RdrName -> HsType RdrName
-takeSecondArg (HsAppTy a b) = unLoc b
-
-putOutInnerHsType :: HsType RdrName -> HsType RdrName
-putOutInnerHsType (HsForAllTy a b c d e) = unLoc e
-
-hsTypeToString :: HsType RdrName -> String
-hsTypeToString = showSDocUnsafe . ppr
-
-mkRdrName :: String -> RdrName
-mkRdrName = mkVarUnqual . fsLit
 
 mkFunId :: String -> Located RdrName
 mkFunId = noLoc . mkRdrName
@@ -50,6 +33,9 @@ applicative = HsTyVar (mkRdrName "Applicative")
 
 functor :: HsType RdrName
 functor = HsTyVar (mkRdrName "Functor")
+
+monad :: HsType RdrName
+monad = HsTyVar (mkRdrName "Monad")
 
 deflHsTyVarBndrs :: LHsTyVarBndrs RdrName
 deflHsTyVarBndrs = HsQTvs { hsq_kvs = []
