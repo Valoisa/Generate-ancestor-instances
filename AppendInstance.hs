@@ -20,7 +20,12 @@ import HsDecls
 import HsTypes
 import HsBinds
 
+import MyParser
+
 import System.Environment
+
+unMaybe :: Maybe a -> a
+unMaybe (Just b) = b
 
 takeFirstArg :: HsType RdrName -> HsType RdrName
 takeFirstArg (HsAppTy a b) = unLoc a
@@ -50,15 +55,15 @@ deflHsTyVarBndrs :: LHsTyVarBndrs RdrName
 deflHsTyVarBndrs = HsQTvs { hsq_kvs = []
                           , hsq_tvs = [] }
 
-mkInstHead :: (HsType RdrName) -> (LHsType RdrName)
-mkInstHead mydata = noLoc (HsForAllTy Explicit Nothing 
+mkInstHead :: (HsType RdrName) -> (HsType RdrName) -> (LHsType RdrName)
+mkInstHead classname mydata = noLoc (HsForAllTy Explicit Nothing 
                     deflHsTyVarBndrs (noLoc [])
-                    (noLoc (HsAppTy (noLoc applicative) 
+                    (noLoc (HsAppTy (noLoc classname) 
                     (noLoc mydata))))
 
-instanceApplicative :: LHsType RdrName -> LHsBinds RdrName
+mkInstance :: LHsType RdrName -> LHsBinds RdrName
                                             -> ClsInstDecl RdrName
-instanceApplicative insthead funs = ClsInstDecl { 
+mkInstance insthead funs = ClsInstDecl { 
                                         cid_poly_ty       = insthead
                                       , cid_binds         = funs
                                       , cid_sigs          = []
@@ -66,6 +71,10 @@ instanceApplicative insthead funs = ClsInstDecl {
                                       , cid_datafam_insts = []
                                       , cid_overlap_mode  = Nothing
                                             }
+mkBind :: String -> String -> HsBindLR RdrName RdrName
+mkBind idL idR = VarBind { var_id     = mkRdrName idL
+                         , var_rhs    = unMaybe (parseToLHsExpr idR)
+                         , var_inline = False }
 
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
