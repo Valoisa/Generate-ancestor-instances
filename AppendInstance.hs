@@ -14,6 +14,7 @@ import qualified GHC
 import Bag
 import Name
 import BasicTypes
+import TcEvidence
 
 import Data.List
 
@@ -59,23 +60,33 @@ mkInstance insthead funs = ClsInstDecl {
                                       , cid_overlap_mode  = Nothing
                                             }
 
-mkGRHSs :: String -> GRHSs RdrName RdrName
-mkGRHSs rhs = GRHSs { grhssGRHSs = [noLoc $ GRHS [] (mkRdrName rhs)]
+mkGRHSs :: String -> GRHSs RdrName (LHsExpr RdrName)
+mkGRHSs rhs = GRHSs { grhssGRHSs      = [noLoc 
+                                $ GRHS [] (unMaybe $ parseToLHsExpr rhs)]
                     , grhssLocalBinds = EmptyLocalBinds }
 
-mkLMatch :: GRHSs RdrName RdrName -> [LPat RdrName]
-                                    -> LMatch RdrName RdrName
+mkLMatch :: GRHSs RdrName (LHsExpr RdrName) -> [LPat RdrName]
+                                    -> LMatch RdrName (LHsExpr RdrName)
 mkLMatch mgrhss mpats = noLoc $ Match { m_fun_id_infix = Nothing
                                       , m_pats         = mpats
                                       , m_type         = Nothing
                                       , m_grhss        = mgrhss }
 
-mkMatchGroup :: LMatch RdrName RdrName
-                                -> MatchGroup RdrName RdrName
+mkMatchGroup :: LMatch RdrName (LHsExpr RdrName)
+                                -> MatchGroup RdrName (LHsExpr RdrName)
 mkMatchGroup lmatch = MG { mg_alts    = [lmatch]
                          , mg_arg_tys = []
                          , mg_res_ty  = placeHolderType
                          , mg_origin  = FromSource }
+
+mkFunBind :: Located RdrName -> MatchGroup RdrName (LHsExpr RdrName)
+                          -> Bool -> HsBindLR RdrName RdrName
+mkFunBind idL idR inf = FunBind { fun_id      = idL
+                                , fun_infix   = inf
+                                , fun_matches = idR
+                                , fun_co_fn   = WpHole
+                                , bind_fvs    = placeHolderType
+                                , fun_tick    = [] }
 
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
