@@ -62,6 +62,13 @@ mkGRHSs :: String -> GRHSs RdrName RdrName
 mkGRHSs rhs = GRHSs { grhssGRHSs = [noLoc $ GRHS [] (mkRdrName rhs)]
                     , grhssLocalBinds = EmptyLocalBinds }
 
+mkLMatch :: GRHSs RdrName RdrName -> [LPat RdrName]
+                                    -> LMatch RdrName RdrName
+mkLMatch mgrhss mpats = noLoc $ Match { m_fun_id_infix = Nothing
+                                      , m_pats         = mpats
+                                      , m_type         = Nothing
+                                      , m_grhss        = mgrhss }
+   
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
 getHsModDecls :: IO (Maybe (HsModule RdrName)) 
