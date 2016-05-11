@@ -65,28 +65,30 @@ mkGRHSs rhs = GRHSs { grhssGRHSs      = [noLoc
                                 $ GRHS [] (unMaybe $ parseToLHsExpr rhs)]
                     , grhssLocalBinds = EmptyLocalBinds }
 
-mkLMatch :: GRHSs RdrName (LHsExpr RdrName) -> [LPat RdrName]
+mkLMatch ::  [LPat RdrName] -> GRHSs RdrName (LHsExpr RdrName)
                                     -> LMatch RdrName (LHsExpr RdrName)
-mkLMatch mgrhss mpats = noLoc $ Match { m_fun_id_infix = Nothing
+mkLMatch mpats mgrhss = noLoc $ Match { m_fun_id_infix = Nothing
                                       , m_pats         = mpats
                                       , m_type         = Nothing
                                       , m_grhss        = mgrhss }
 
-mkMatchGroup :: LMatch RdrName (LHsExpr RdrName)
+mkMyMatchGroup :: LMatch RdrName (LHsExpr RdrName)
                                 -> MatchGroup RdrName (LHsExpr RdrName)
-mkMatchGroup lmatch = MG { mg_alts    = [lmatch]
-                         , mg_arg_tys = []
-                         , mg_res_ty  = placeHolderType
-                         , mg_origin  = FromSource }
+mkMyMatchGroup lmatch = MG { mg_alts    = [lmatch]
+                           , mg_arg_tys = []
+                           , mg_res_ty  = placeHolderType
+                           , mg_origin  = FromSource }
 
-mkFunBind :: Located RdrName -> MatchGroup RdrName (LHsExpr RdrName)
+mkFunBind :: String -> String -> [LPat RdrName]
                           -> Bool -> HsBindLR RdrName RdrName
-mkFunBind idL idR inf = FunBind { fun_id      = idL
-                                , fun_infix   = inf
-                                , fun_matches = idR
-                                , fun_co_fn   = WpHole
-                                , bind_fvs    = placeHolderType
-                                , fun_tick    = [] }
+mkFunBind idL idR lpats inf = FunBind { fun_id      = mkFunId idL
+                                      , fun_infix   = inf
+                                      , fun_matches = mkMyMatchGroup
+                                                $ mkLMatch lpats 
+                                                $ mkGRHSs idR
+                                      , fun_co_fn   = WpHole
+                                      , bind_fvs    = placeHolderType
+                                      , fun_tick    = [] }
 
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
