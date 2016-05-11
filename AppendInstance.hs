@@ -195,6 +195,17 @@ getInstsFunctor md = do
         Nothing  -> return Nothing
         Just mdl -> return $ Just (filter isInstanceFunctor mdl)
 
+fixInstancesMonad :: IO (Maybe (HsModule RdrName))
+                                -> IO (Maybe [ClsInstDecl RdrName])
+fixInstancesMonad md = undefined {- do
+    mp <- md
+    case mp of
+        Nothing  -> return Nothing
+        Just mdl -> return Just ( (map mkInstance)
+                    $ getInstsMonad
+                    $ getClsInstDecl $ getInstDecls 
+                    $ getHsDecls $ getHsModDecls mdl) -}
+
 -- "Pulls out" HsType (is contained in ClsInstDecl)
 getHsType :: IO (Maybe [ClsInstDecl RdrName])
                                         -> IO (Maybe [HsType RdrName])
@@ -204,24 +215,6 @@ getHsType md = do
         Nothing  -> return Nothing
         Just mdl -> return $ Just (map (unLoc . cid_poly_ty) mdl)
 
-{-isHsDocTy :: HsType RdrName -> Bool
-isHsDocTy (HsDocTy _ _) = True
-isHsDocTy _             = False
-
-showHsDocTy :: IO (Maybe [ClsInstDecl RdrName])
-                                        -> IO (Maybe [String])
-showHsDocTy = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (showSDocUnsafe . pprParendHsType
-                            . isHsDocTy
-                            . unLoc . cid_poly_ty) mdl)-}
-
--- HsType is shown up inside of the brackets; 
--- it is necessary to delete them
-deleteBrackets :: String -> String
-deleteBrackets = init . tail
 
 -- "Pulls" the HsBinds out of ClsInstDecl
 getHsBinds :: IO (Maybe [ClsInstDecl RdrName])
