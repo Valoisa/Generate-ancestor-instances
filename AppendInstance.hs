@@ -79,7 +79,7 @@ mkMyMatchGroup lmatch = MG { mg_alts    = [lmatch]
                            , mg_res_ty  = placeHolderType
                            , mg_origin  = FromSource }
 
-mkFunBind :: String -> String -> [LPat RdrName]
+{- mkFunBind :: String -> String -> [LPat RdrName]
                           -> Bool -> HsBindLR RdrName RdrName
 mkFunBind idL idR lpats inf = FunBind { fun_id      = mkFunId idL
                                       , fun_infix   = inf
@@ -88,7 +88,15 @@ mkFunBind idL idR lpats inf = FunBind { fun_id      = mkFunId idL
                                                 $ mkGRHSs idR
                                       , fun_co_fn   = WpHole
                                       , bind_fvs    = placeHolderType
-                                      , fun_tick    = [] }
+                                      , fun_tick    = [] } -}
+
+mkCIDBindsForInstMonad :: LHsBindLR RdrName RdrName -> LHsBinds RdrName
+mkCIDBindsForInstMonad userbind = listToBag 
+                        [ noLoc (mkFunBind (mkFunId "return") ([mkLMatch [] 
+                                                $ mkGRHSs "pure"]))
+                        , noLoc (mkFunBind (mkFunId "(>>)") ([mkLMatch [] 
+                                                $ mkGRHSs "(*>)"]))
+                        , userbind]
 
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
