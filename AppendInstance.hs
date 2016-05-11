@@ -13,6 +13,7 @@ import StringBuffer
 import qualified GHC
 import Bag
 import Name
+import BasicTypes
 
 import Data.List
 
@@ -68,7 +69,14 @@ mkLMatch mgrhss mpats = noLoc $ Match { m_fun_id_infix = Nothing
                                       , m_pats         = mpats
                                       , m_type         = Nothing
                                       , m_grhss        = mgrhss }
-   
+
+mkMatchGroup :: LMatch RdrName RdrName
+                                -> MatchGroup RdrName RdrName
+mkMatchGroup lmatch = MG { mg_alts    = [lmatch]
+                         , mg_arg_tys = []
+                         , mg_res_ty  = placeHolderType
+                         , mg_origin  = FromSource }
+
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
 getHsModDecls :: IO (Maybe (HsModule RdrName)) 
