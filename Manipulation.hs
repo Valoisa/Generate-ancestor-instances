@@ -7,6 +7,9 @@ import RdrName
 import FastString
 import Outputable
 import SrcLoc
+import RdrName
+import Outputable
+import OccName
 
 unMaybe :: Maybe a -> a
 unMaybe (Just b) = b
@@ -25,3 +28,6 @@ hsTypeToString = showSDocUnsafe . ppr
 
 mkRdrName :: String -> RdrName
 mkRdrName = mkVarUnqual . fsLit
+
+rdrName2String :: RdrName -> String
+rdrName2String nm = showSDocUnsafe $ pprOccName $ rdrNameOcc nm

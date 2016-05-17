@@ -90,13 +90,14 @@ mkFunBind idL idR lpats inf = FunBind { fun_id      = mkFunId idL
                                       , bind_fvs    = placeHolderType
                                       , fun_tick    = [] } -}
 
-mkCIDBindsForInstMonad :: LHsBindLR RdrName RdrName -> LHsBinds RdrName
-mkCIDBindsForInstMonad userbind = listToBag 
-                        [ noLoc (mkFunBind (mkFunId "return") ([mkLMatch [] 
+mkCIDBindsForInstMonad :: [LHsBindLR RdrName RdrName]
+                                            -> LHsBinds RdrName
+mkCIDBindsForInstMonad userbind = listToBag $ (++)
+                   [ noLoc (mkFunBind (mkFunId "return") ([mkLMatch [] 
                                                 $ mkGRHSs "pure"]))
-                        , noLoc (mkFunBind (mkFunId "(>>)") ([mkLMatch [] 
-                                                $ mkGRHSs "(*>)"]))
-                        , userbind]
+                   , noLoc (mkFunBind (mkFunId "(>>)") ([mkLMatch [] 
+                                                $ mkGRHSs "(*>)"])) ]
+                    userbind
 
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
@@ -151,6 +152,10 @@ isClsInstDecl :: InstDecl RdrName -> Bool
 isClsInstDecl (ClsInstD _ ) = True
 isClsInstDecl _             = False
 
+isFunBind :: HsBindLR RdrName RdrName -> Bool
+isFunBind (FunBind _ _ _ _ _ _) = True
+isFunBind _                     = False
+
 whatClassIsInstance :: ClsInstDecl RdrName -> HsType RdrName
 whatClassIsInstance = takeFirstArg . putOutInnerHsType 
                         . unLoc . cid_poly_ty
@@ -158,6 +163,12 @@ whatClassIsInstance = takeFirstArg . putOutInnerHsType
 takeUserData :: ClsInstDecl RdrName -> HsType RdrName
 takeUserData = takeSecondArg . putOutInnerHsType 
                         . unLoc . cid_poly_ty
+
+takeUserBind :: ClsInstDecl RdrName -> [LHsBindLR RdrName RdrName]
+takeUserBind = (map noLoc) . (filter (\x -> (rdrName2String . unLoc 
+                                              . fun_id) x == ">>=")) 
+            . (filter isFunBind) 
+            . (map unLoc) . bagToList . cid_binds
 
 isInstanceMonad :: ClsInstDecl RdrName -> Bool
 isInstanceMonad instD = 
@@ -195,17 +206,6 @@ getInstsFunctor md = do
         Nothing  -> return Nothing
         Just mdl -> return $ Just (filter isInstanceFunctor mdl)
 
-fixInstancesMonad :: IO (Maybe (HsModule RdrName))
-                                -> IO (Maybe [ClsInstDecl RdrName])
-fixInstancesMonad md = undefined {- do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return Just ( (map mkInstance)
-                    $ getInstsMonad
-                    $ getClsInstDecl $ getInstDecls 
-                    $ getHsDecls $ getHsModDecls mdl) -}
-
 -- "Pulls out" HsType (is contained in ClsInstDecl)
 getHsType :: IO (Maybe [ClsInstDecl RdrName])
                                         -> IO (Maybe [HsType RdrName])
@@ -225,3 +225,16 @@ getHsBinds md = do
         Nothing  -> return Nothing
         Just mdl -> return $ Just (map ((map unLoc) . bagToList 
                                                 . cid_binds) mdl)
+
+--Adding instances
+fixInstancesMonad :: IO (Maybe (HsModule RdrName))
+                                -> IO (Maybe [ClsInstDecl RdrName])
+fixInstancesMonad md = do
+    mp <-  getInstsMonad
+           $ getClsInstDecl $ getInstDecls 
+           $ getHsDecls $ getHsModDecls md
+    return $ case mp of 
+        Nothing  -> Nothing
+        Just mdl -> Just (map (\x -> 
+                mkInstance (mkInstHead monad (takeUserData x)) 
+                    (mkCIDBindsForInstMonad $ takeUserBind x)) mdl)
