@@ -165,9 +165,23 @@ takeUserData = takeSecondArg . putOutInnerHsType
                         . unLoc . cid_poly_ty
 
 takeUserBind :: ClsInstDecl RdrName -> [LHsBindLR RdrName RdrName]
-takeUserBind = (map noLoc) . (filter (\x -> (rdrName2String . unLoc 
-                                              . fun_id) x == ">>=")) 
-            . (filter isFunBind) 
+takeUserBind = (map noLoc) . (filter (filterFun ">>=")) 
+            . filterFunBinds
+
+takeUserReturn :: ClsInstDecl RdrName -> [LHsBindLR RdrName RdrName]
+takeUserReturn = (map noLoc) . (filter (filterFun "return")) 
+            . filterFunBinds
+
+takeUserGrGr :: ClsInstDecl RdrName -> [LHsBindLR RdrName RdrName]
+takeUserGrGr = (map noLoc) . (filter (filterFun ">>")) 
+            . filterFunBinds
+
+filterFun :: String -> HsBindLR RdrName RdrName -> Bool
+filterFun fun bind = (rdrName2String . unLoc . fun_id) bind == fun
+
+filterFunBinds :: ClsInstDecl RdrName
+                                    -> [HsBindLR RdrName RdrName]
+filterFunBinds = (filter isFunBind) 
             . (map unLoc) . bagToList . cid_binds
 
 isInstanceMonad :: ClsInstDecl RdrName -> Bool
@@ -238,3 +252,5 @@ fixInstancesMonad md = do
         Just mdl -> Just (map (\x -> 
                 mkInstance (mkInstHead monad (takeUserData x)) 
                     (mkCIDBindsForInstMonad $ takeUserBind x)) mdl)
+
+--addInstanceApplicative
