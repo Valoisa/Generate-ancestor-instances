@@ -79,16 +79,16 @@ mkMyMatchGroup lmatch = MG { mg_alts    = [lmatch]
                            , mg_res_ty  = placeHolderType
                            , mg_origin  = FromSource }
 
-{- mkFunBind :: String -> String -> [LPat RdrName]
+mkFunBindForAppl :: String -> HsBindLR RdrName RdrName
                           -> Bool -> HsBindLR RdrName RdrName
-mkFunBind idL idR lpats inf = FunBind { fun_id      = mkFunId idL
+mkFunBindForAppl idL monbind inf = FunBind { 
+                                        fun_id      = mkFunId idL
                                       , fun_infix   = inf
-                                      , fun_matches = mkMyMatchGroup
-                                                $ mkLMatch lpats 
-                                                $ mkGRHSs idR
-                                      , fun_co_fn   = WpHole
-                                      , bind_fvs    = placeHolderType
-                                      , fun_tick    = [] } -}
+                                      , fun_matches = fun_matches monbind
+                                      , fun_co_fn   = fun_co_fn monbind
+                                      , bind_fvs    = bind_fvs monbind
+                                      , fun_tick    = fun_tick monbind
+                                       }
 
 mkCIDBindsForInstMonad :: [LHsBindLR RdrName RdrName]
                                             -> LHsBinds RdrName
@@ -98,6 +98,30 @@ mkCIDBindsForInstMonad userbind = listToBag $ (++)
                    , noLoc (mkFunBind (mkFunId "(>>)") ([mkLMatch [] 
                                                 $ mkGRHSs "(*>)"])) ]
                     userbind
+
+mkCIDBindsForInstAppl :: [HsBindLR RdrName RdrName]
+                -> [HsBindLR RdrName RdrName] -> LHsBinds RdrName
+mkCIDBindsForInstAppl [] [] = listToBag 
+                    [ noLoc (mkFunBind (mkFunId "(<*>)") ([mkLMatch [] 
+                                                $ mkGRHSs "ap"])) ]
+mkCIDBindsForInstAppl [] mongr = listToBag
+                    [ noLoc (mkFunBind (mkFunId "(<*>)") ([mkLMatch [] 
+                                                $ mkGRHSs "ap"]))
+                    , noLoc (mkFunBindForAppl "*>" (head mongr) True) ]
+mkCIDBindsForInstAppl monret [] = listToBag
+                    [ noLoc (mkFunBindForAppl "pure" (head monret) False)
+                    , noLoc (mkFunBind (mkFunId "(<*>)") ([mkLMatch [] 
+                                                $ mkGRHSs "ap"])) ]
+mkCIDBindsForInstAppl monret mongr = listToBag
+                    [ noLoc (mkFunBindForAppl "pure" (head monret) False)
+                    , noLoc (mkFunBind (mkFunId "(<*>)") ([mkLMatch [] 
+                                                $ mkGRHSs "ap"]))
+                    , noLoc (mkFunBindForAppl "*>" (head mongr) True) ]
+
+mkCIDBindsForInstFunc :: LHsBinds RdrName
+mkCIDBindsForInstFunc = listToBag
+                    [ noLoc (mkFunBind (mkFunId "fmap") ([mkLMatch [] 
+                                                $ mkGRHSs "liftM"])) ]
 
 -- "Pulls out" the declarations from the module 
 -- (that are inside of Located)
@@ -168,13 +192,11 @@ takeUserBind :: ClsInstDecl RdrName -> [LHsBindLR RdrName RdrName]
 takeUserBind = (map noLoc) . (filter (filterFun ">>=")) 
             . filterFunBinds
 
-takeUserReturn :: ClsInstDecl RdrName -> [LHsBindLR RdrName RdrName]
-takeUserReturn = (map noLoc) . (filter (filterFun "return")) 
-            . filterFunBinds
+takeUserReturn :: ClsInstDecl RdrName -> [HsBindLR RdrName RdrName]
+takeUserReturn = (filter (filterFun "return")) . filterFunBinds
 
-takeUserGrGr :: ClsInstDecl RdrName -> [LHsBindLR RdrName RdrName]
-takeUserGrGr = (map noLoc) . (filter (filterFun ">>")) 
-            . filterFunBinds
+takeUserGrGr :: ClsInstDecl RdrName -> [HsBindLR RdrName RdrName]
+takeUserGrGr = (filter (filterFun ">>")) . filterFunBinds
 
 filterFun :: String -> HsBindLR RdrName RdrName -> Bool
 filterFun fun bind = (rdrName2String . unLoc . fun_id) bind == fun
@@ -253,4 +275,27 @@ fixInstancesMonad md = do
                 mkInstance (mkInstHead monad (takeUserData x)) 
                     (mkCIDBindsForInstMonad $ takeUserBind x)) mdl)
 
---addInstanceApplicative
+addInstanceApplicative :: IO (Maybe (HsModule RdrName))
+                                -> IO (Maybe [ClsInstDecl RdrName])
+addInstanceApplicative md = do
+    mp <- getInstsMonad
+           $ getClsInstDecl $ getInstDecls 
+           $ getHsDecls $ getHsModDecls md
+    return $ case mp of 
+        Nothing  -> Nothing
+        Just mdl -> Just (map (\x -> 
+                mkInstance (mkInstHead applicative (takeUserData x)) 
+                    (mkCIDBindsForInstAppl (takeUserReturn x)
+                                                (takeUserGrGr x))) mdl)
+
+addInstanceFunctor :: IO (Maybe (HsModule RdrName))
+                                -> IO (Maybe [ClsInstDecl RdrName])
+addInstanceFunctor md = do
+    mp <- getInstsMonad
+           $ getClsInstDecl $ getInstDecls 
+           $ getHsDecls $ getHsModDecls md
+    return $ case mp of 
+        Nothing  -> Nothing
+        Just mdl -> Just (map (\x -> 
+                mkInstance (mkInstHead functor (takeUserData x)) 
+                    mkCIDBindsForInstFunc) mdl)
