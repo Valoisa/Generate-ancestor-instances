@@ -24,6 +24,7 @@ import HsBinds
 
 import MyParser
 import Manipulation
+import AppendImport
 
 import System.Environment
 
@@ -242,6 +243,19 @@ getInstsFunctor md = do
         Nothing  -> return Nothing
         Just mdl -> return $ Just (filter isInstanceFunctor mdl)
 
+filterAloneInstMon :: Maybe [ClsInstDecl RdrName]
+                                    -> Maybe [ClsInstDecl RdrName]
+                                    -> Maybe [ClsInstDecl RdrName]
+filterAloneInstMon md mpap = 
+    case md of
+        Nothing  -> Nothing
+        Just mdl -> Just (filter 
+                                (hasntApprInst (unMaybe mpap)) mdl)
+
+hasntApprInst :: [ClsInstDecl RdrName] -> ClsInstDecl RdrName -> Bool
+hasntApprInst xs x = not $ elem (showSDocUnsafe $ ppr $ takeUserData x) 
+                  (map (showSDocUnsafe . ppr . takeUserData) xs)
+
 -- "Pulls out" HsType (is contained in ClsInstDecl)
 getHsType :: IO (Maybe [ClsInstDecl RdrName])
                                         -> IO (Maybe [HsType RdrName])
@@ -263,39 +277,58 @@ getHsBinds md = do
                                                 . cid_binds) mdl)
 
 --Adding instances
-fixInstancesMonad :: IO (Maybe (HsModule RdrName))
-                                -> IO (Maybe [ClsInstDecl RdrName])
-fixInstancesMonad md = do
-    mp <-  getInstsMonad
-           $ getClsInstDecl $ getInstDecls 
-           $ getHsDecls $ getHsModDecls md
-    return $ case mp of 
+fixInstancesMonad :: Maybe [ClsInstDecl RdrName]
+                                -> Maybe [ClsInstDecl RdrName]
+fixInstancesMonad mp = 
+    case mp of 
         Nothing  -> Nothing
         Just mdl -> Just (map (\x -> 
                 mkInstance (mkInstHead monad (takeUserData x)) 
                     (mkCIDBindsForInstMonad $ takeUserBind x)) mdl)
 
-addInstanceApplicative :: IO (Maybe (HsModule RdrName))
-                                -> IO (Maybe [ClsInstDecl RdrName])
-addInstanceApplicative md = do
-    mp <- getInstsMonad
-           $ getClsInstDecl $ getInstDecls 
-           $ getHsDecls $ getHsModDecls md
-    return $ case mp of 
+addInstanceApplicative :: Maybe [ClsInstDecl RdrName]
+                                -> Maybe [ClsInstDecl RdrName]
+addInstanceApplicative mp = 
+    case mp of 
         Nothing  -> Nothing
         Just mdl -> Just (map (\x -> 
                 mkInstance (mkInstHead applicative (takeUserData x)) 
                     (mkCIDBindsForInstAppl (takeUserReturn x)
                                                 (takeUserGrGr x))) mdl)
 
-addInstanceFunctor :: IO (Maybe (HsModule RdrName))
-                                -> IO (Maybe [ClsInstDecl RdrName])
-addInstanceFunctor md = do
-    mp <- getInstsMonad
-           $ getClsInstDecl $ getInstDecls 
-           $ getHsDecls $ getHsModDecls md
-    return $ case mp of 
+addInstanceFunctor :: Maybe [ClsInstDecl RdrName]
+                                -> Maybe [ClsInstDecl RdrName]
+addInstanceFunctor mp = 
+    case mp of 
         Nothing  -> Nothing
         Just mdl -> Just (map (\x -> 
                 mkInstance (mkInstHead functor (takeUserData x)) 
                     mkCIDBindsForInstFunc) mdl)
+
+appendAllInstances :: IO (Maybe (HsModule RdrName))
+                                -> IO (Maybe (HsModule RdrName))
+appendAllInstances md = do
+    mp <- md
+    appls <- getInstsApplicative
+           $ getClsInstDecl $ getInstDecls 
+           $ getHsDecls $ getHsModDecls md
+    funcs <- getInstsFunctor
+           $ getClsInstDecl $ getInstDecls 
+           $ getHsDecls $ getHsModDecls md
+    monads <- getInstsMonad
+           $ getClsInstDecl $ getInstDecls 
+           $ getHsDecls $ getHsModDecls md
+    return $ case mp of 
+        Nothing  -> Nothing
+        Just mdl -> Just (HsModule {
+            hsmodName = Just (noLoc $ GHC.mkModuleName "Instances7.10")
+          , hsmodExports = Nothing
+          , hsmodImports = [ importFunctor
+                           , importApplicative
+                           , importMonad ]
+          , hsmodDecls = map noLoc $ map (InstD . ClsInstD)
+                 ((unMaybe $ addInstanceApplicative monads)
+               ++ (unMaybe $ addInstanceFunctor monads)
+               ++ (unMaybe $ fixInstancesMonad monads))
+          , hsmodDeprecMessage = Nothing
+          , hsmodHaddockModHeader = Nothing }) 
