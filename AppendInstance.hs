@@ -305,6 +305,40 @@ addInstanceFunctor mp =
                 mkInstance (mkInstHead functor (takeUserData x)) 
                     mkCIDBindsForInstFunc) mdl)
 
+cutInstanceMonad :: IO (Maybe (HsModule RdrName))
+                                -> IO (Maybe (HsModule RdrName))
+cutInstanceMonad md = do
+    mp <- md
+    appls <- getInstsApplicative
+           $ getClsInstDecl $ getInstDecls 
+           $ getHsDecls $ getHsModDecls md
+    return $
+        case mp of
+            Nothing  -> Nothing
+            Just mdl -> Just (HsModule {
+            hsmodName = hsmodName mdl
+          , hsmodExports = hsmodExports mdl
+          , hsmodImports = hsmodImports mdl
+          , hsmodDecls = filter (notInstMon (unMaybeList appls)) 
+                                                    $ hsmodDecls mdl
+          , hsmodDeprecMessage = hsmodDeprecMessage mdl
+          , hsmodHaddockModHeader = hsmodHaddockModHeader mdl })
+          where
+            notInstMon :: [ClsInstDecl RdrName] -> LHsDecl RdrName -> Bool
+            notInstMon xs ldecl = 
+                let decl = unLoc ldecl in
+                case decl of
+                  InstD a -> case a of
+                               ClsInstD b -> case isInstanceMonad b of
+                                               True  -> case hasntApprInst xs b of
+                                                          False -> True
+                                                          True  -> False
+                                               False -> True
+                               _          -> True
+                  _       -> True
+                    
+                
+
 appendAllInstances :: IO (Maybe (HsModule RdrName))
                                 -> IO (Maybe (HsModule RdrName))
 appendAllInstances md = do
@@ -322,13 +356,14 @@ appendAllInstances md = do
         Nothing  -> Nothing
         Just mdl -> Just (HsModule {
             hsmodName = Just (noLoc $ GHC.mkModuleName "Instances7.10")
-          , hsmodExports = Nothing
-          , hsmodImports = [ importFunctor
+          , hsmodExports = hsmodExports mdl
+          , hsmodImports = hsmodImports mdl ++ [ importFunctor
                            , importApplicative
                            , importMonad ]
-          , hsmodDecls = map noLoc $ map (InstD . ClsInstD)
+          , hsmodDecls = hsmodDecls mdl
+               ++ (map noLoc $ map (InstD . ClsInstD)
                  ((unMaybe $ addInstanceApplicative monads)
                ++ (unMaybe $ addInstanceFunctor monads)
-               ++ (unMaybe $ fixInstancesMonad monads))
-          , hsmodDeprecMessage = Nothing
-          , hsmodHaddockModHeader = Nothing }) 
+               ++ (unMaybe $ fixInstancesMonad monads)))
+          , hsmodDeprecMessage = hsmodDeprecMessage mdl
+          , hsmodHaddockModHeader = hsmodHaddockModHeader mdl }) 

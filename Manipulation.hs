@@ -14,6 +14,10 @@ import OccName
 unMaybe :: Maybe a -> a
 unMaybe (Just b) = b
 
+unMaybeList :: Maybe [a] -> [a]
+unMaybeList (Just xs) = xs
+unMaybeList Nothing   = []
+
 takeFirstArg :: HsType RdrName -> HsType RdrName
 takeFirstArg (HsAppTy a b) = unLoc a
 
