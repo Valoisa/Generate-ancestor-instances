@@ -24,5 +24,5 @@ main = do
     mp <- appendAllInstances $ parseHaskell file
     case mp of
         Nothing  -> putStrLn "Parse failed"
-        Just mdl -> writeFile "Instances7.10.hs" $ showSDocUnsafe 
-                                                 $ ppr mdl
+        Just mdl -> writeFile file 
+                $ showSDocUnsafe $ ppr mdl

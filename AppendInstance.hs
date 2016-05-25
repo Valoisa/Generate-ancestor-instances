@@ -246,14 +246,18 @@ getInstsFunctor md = do
 filterAloneInstMon :: Maybe [ClsInstDecl RdrName]
                                     -> Maybe [ClsInstDecl RdrName]
                                     -> Maybe [ClsInstDecl RdrName]
-filterAloneInstMon md mpap = 
+filterAloneInstMon mpap md = 
     case md of
         Nothing  -> Nothing
         Just mdl -> Just (filter 
-                                (hasntApprInst (unMaybe mpap)) mdl)
+                                (hasntApprInst (unMaybeList mpap)) mdl)
 
 hasntApprInst :: [ClsInstDecl RdrName] -> ClsInstDecl RdrName -> Bool
 hasntApprInst xs x = not $ elem (showSDocUnsafe $ ppr $ takeUserData x) 
+                  (map (showSDocUnsafe . ppr . takeUserData) xs)
+
+hasApprInst :: [ClsInstDecl RdrName] -> ClsInstDecl RdrName -> Bool
+hasApprInst xs x = elem (showSDocUnsafe $ ppr $ takeUserData x) 
                   (map (showSDocUnsafe . ppr . takeUserData) xs)
 
 -- "Pulls out" HsType (is contained in ClsInstDecl)
@@ -342,7 +346,7 @@ cutInstanceMonad md = do
 appendAllInstances :: IO (Maybe (HsModule RdrName))
                                 -> IO (Maybe (HsModule RdrName))
 appendAllInstances md = do
-    mp <- md
+    mp <- cutInstanceMonad md
     appls <- getInstsApplicative
            $ getClsInstDecl $ getInstDecls 
            $ getHsDecls $ getHsModDecls md
@@ -355,15 +359,18 @@ appendAllInstances md = do
     return $ case mp of 
         Nothing  -> Nothing
         Just mdl -> Just (HsModule {
-            hsmodName = Just (noLoc $ GHC.mkModuleName "Instances7.10")
+            hsmodName = hsmodName mdl
           , hsmodExports = hsmodExports mdl
           , hsmodImports = hsmodImports mdl ++ [ importFunctor
                            , importApplicative
                            , importMonad ]
           , hsmodDecls = hsmodDecls mdl
                ++ (map noLoc $ map (InstD . ClsInstD)
-                 ((unMaybe $ addInstanceApplicative monads)
-               ++ (unMaybe $ addInstanceFunctor monads)
-               ++ (unMaybe $ fixInstancesMonad monads)))
+                 ((unMaybeList $ addInstanceApplicative 
+                               $ filterAloneInstMon appls monads)
+               ++ (unMaybeList $ addInstanceFunctor 
+                               $ filterAloneInstMon funcs monads)
+               ++ (unMaybeList $ fixInstancesMonad 
+                               $ filterAloneInstMon appls monads)))
           , hsmodDeprecMessage = hsmodDeprecMessage mdl
           , hsmodHaddockModHeader = hsmodHaddockModHeader mdl }) 
