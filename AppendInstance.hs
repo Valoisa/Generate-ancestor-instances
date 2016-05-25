@@ -73,13 +73,6 @@ mkLMatch mpats mgrhss = noLoc $ Match { m_fun_id_infix = Nothing
                                       , m_type         = Nothing
                                       , m_grhss        = mgrhss }
 
-mkMyMatchGroup :: LMatch RdrName (LHsExpr RdrName)
-                                -> MatchGroup RdrName (LHsExpr RdrName)
-mkMyMatchGroup lmatch = MG { mg_alts    = [lmatch]
-                           , mg_arg_tys = []
-                           , mg_res_ty  = placeHolderType
-                           , mg_origin  = FromSource }
-
 mkFunBindForAppl :: String -> HsBindLR RdrName RdrName
                           -> Bool -> HsBindLR RdrName RdrName
 mkFunBindForAppl idL monbind inf = FunBind { 
@@ -90,7 +83,7 @@ mkFunBindForAppl idL monbind inf = FunBind {
                                       , bind_fvs    = bind_fvs monbind
                                       , fun_tick    = fun_tick monbind
                                        }
-
+-- Making Class Instance Declaration binds 
 mkCIDBindsForInstMonad :: [LHsBindLR RdrName RdrName]
                                             -> LHsBinds RdrName
 mkCIDBindsForInstMonad userbind = listToBag $ (++)
@@ -255,30 +248,6 @@ filterAloneInstMon mpap md =
 hasntApprInst :: [ClsInstDecl RdrName] -> ClsInstDecl RdrName -> Bool
 hasntApprInst xs x = not $ elem (showSDocUnsafe $ ppr $ takeUserData x) 
                   (map (showSDocUnsafe . ppr . takeUserData) xs)
-
-hasApprInst :: [ClsInstDecl RdrName] -> ClsInstDecl RdrName -> Bool
-hasApprInst xs x = elem (showSDocUnsafe $ ppr $ takeUserData x) 
-                  (map (showSDocUnsafe . ppr . takeUserData) xs)
-
--- "Pulls out" HsType (is contained in ClsInstDecl)
-getHsType :: IO (Maybe [ClsInstDecl RdrName])
-                                        -> IO (Maybe [HsType RdrName])
-getHsType md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map (unLoc . cid_poly_ty) mdl)
-
-
--- "Pulls" the HsBinds out of ClsInstDecl
-getHsBinds :: IO (Maybe [ClsInstDecl RdrName])
-                           -> IO (Maybe [[HsBindLR RdrName RdrName]])
-getHsBinds md = do
-    mp <- md
-    case mp of
-        Nothing  -> return Nothing
-        Just mdl -> return $ Just (map ((map unLoc) . bagToList 
-                                                . cid_binds) mdl)
 
 --Adding instances
 fixInstancesMonad :: Maybe [ClsInstDecl RdrName]
