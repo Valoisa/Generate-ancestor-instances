@@ -38,11 +38,11 @@
 
 \usepackage{xcolor}
 \usepackage{hyperref}
-\definecolor{linkcolor}{HTML}{799B03} % цвет ссылок
-\definecolor{urlcolor}{HTML}{799B03} % цвет гиперссылок
+%\definecolor{linkcolor}{HTML}{799B03} % цвет ссылок
+%\definecolor{urlcolor}{HTML}{799B03} % цвет гиперссылок
 
-\hypersetup{pdfstartview=FitH,  linkcolor=linkcolor, %
-urlcolor=urlcolor, colorlinks=true}
+\hypersetup{pdfstartview=FitH,  linkcolor=blue, %
+urlcolor=blue, colorlinks=true}
 
 \title{Генерация экземпляров классов типов \\
     на основе экземпляров производных классов в языке Haskell}
@@ -53,8 +53,7 @@ urlcolor=urlcolor, colorlinks=true}
 \vspace{8pt}
 
 Южный федеральный университет\\
-Институт математики, механики и компьютерных наук\\
-имени~И.\,И.\,Воровича\\
+Институт математики, механики и компьютерных наук имени~И.\,И.\,Воровича\\
 
 \vspace{8pt}
 
@@ -103,7 +102,52 @@ urlcolor=urlcolor, colorlinks=true}
         \end{itemize}
         \end{examplefirst}
     \end{frame}
+    
+    \begin{frame}[containsverbatim]{Пример}
 
+    \begin{columns}
+        \column{6cm}
+
+    \begin{examplefirst}{Пользовательский тип}
+        \begin{lstlisting}[basicstyle=\smallcode]
+newtype Prob a =
+    Prob { getProb ::
+           [(a, Rational)] }
+        \end{lstlisting}
+    \end{examplefirst}
+
+    \begin{examplefirst}{Экземпляр Monad}
+        \begin{lstlisting}[basicstyle=\smallcode]
+instance Monad Prob where
+  return x = Prob [(x,1%1)]
+  m >>= f  = flatten
+               (fmap f m)
+  x >> y   = x >>= \_ -> y
+        \end{lstlisting}
+    \end{examplefirst}
+
+        \column{6cm}
+        \begin{examplefirst}{Результат}
+            \begin{lstlisting}[basicstyle=\smallcode]
+instance Functor Prob where
+  fmap   = liftM
+
+instance Applicative Prob where
+  pure   = Prob [(x,1%1)]
+  (<*>)  = ap
+  x *> y = x >>= \_ -> y
+
+instance Monad Probe where
+  return   = pure
+  (>>)     = (*>)
+  m >>= f  = flatten
+               (fmap f m)
+            \end{lstlisting}
+        \end{examplefirst}
+    \end{columns}
+
+    \end{frame}
+    
     \begin{frame}{Задача 1: получить синтаксическое дерево}
     \tikzstyle{every node}=[shape=rectangle, rounded corners,%
     top color=orange!75!black,%
@@ -172,26 +216,41 @@ urlcolor=urlcolor, colorlinks=true}
 
     \end{frame}
 
-    \begin {frame}{Задача 3: генерация экземпляров Applicative}
-        \lstinline{import Control.Applicative}
-    \tikzstyle{every node}=[shape=rectangle, rounded corners,%
-    top color=orange!75!black,%
-    bottom color=orange!75!black, text=white, anchor=west]
-    \tikzstyle{selected}=[shape=rectangle, rounded corners,%
-    top color=green!75!black,%
-    bottom color=green!75!black, text=white]
-    \tikzstyle{optional}=[dashed,fill=gray!50]
-        \begin{tikzpicture}[%
-  grow via three points={one child at (0.5,-0.7) and
-  two children at (0.5,-0.7) and (0.5,-1.4)},
-  edge from parent path={(\tikzparentnode.south) |- (\tikzchildnode.west)}]
-  \node {ImportDecl}
-    child { node {ideclName}}
-    child { node {ideclPkgQual}}
-    child { node {ideclQualified}}
-    child { node {ideclImplicit}}
-    child { node {$\ldots$}};
-      \end{tikzpicture}
+    \begin {frame}[containsverbatim]{Задача 3: генерация экземпляров Applicative}
+    \begin{columns}
+        \column{6cm}
+
+    \begin{examplefirst}{One.hs}
+        \begin{lstlisting}[basicstyle=\smallcode]
+module One where
+
+import Control.Monad
+
+data MyData a = MyData a
+instance Monad MyData
+        \end{lstlisting}
+    \end{examplefirst}
+
+        \column{6cm}
+        \begin{examplefirst}{Two.hs}
+            \begin{lstlisting}[basicstyle=\smallcode]
+module Two where
+
+import Control.Applicative
+import Data.Functor
+import One
+
+instance Functor MyData
+instance Applicative MyData
+            \end{lstlisting}
+        \end{examplefirst}
+    \end{columns}
+\begin{examplefirst}{Ошибка:}
+\small{
+\texttt{One.hs:7:10:}\\
+~~~~\texttt{\small{No instance for (Applicative MyData)}} \\
+<\ldots>}
+\end{examplefirst} 
     \end {frame}
 
     \begin {frame}{Задача 3: генерация экземпляров Applicative}
@@ -223,55 +282,9 @@ urlcolor=urlcolor, colorlinks=true}
     child [missing] {}
     child { node {$\ldots$}};
       \end{tikzpicture}
-              \begin{examplefirst}{\small{\textit{Более подробно см.:}}}
-            \small{\url{https://ghc.haskell.org/trac/ghc/wiki/Migration/7.10}}
-        \end{examplefirst}
+      \begin{examplefirst}{\small{\textit{Более подробно:}}}
+            \scriptsize \url{https://ghc.haskell.org/trac/ghc/wiki/Migration/7.10}        \end{examplefirst}
     \end {frame}
-
-    \begin{frame}[containsverbatim]{Генерация экземпляров Applicative: пример}
-
-    \begin{columns}
-        \column{6cm}
-
-    \begin{examplefirst}{Пользовательский тип}
-        \begin{lstlisting}[basicstyle=\smallcode]
-newtype Prob a =
-    Prob { getProb ::
-           [(a, Rational)] }
-        \end{lstlisting}
-    \end{examplefirst}
-
-    \begin{examplefirst}{Экземпляр Monad}
-        \begin{lstlisting}[basicstyle=\smallcode]
-instance Monad Prob where
-  return x = Prob [(x,1%1)]
-  m >>= f  = flatten
-               (fmap f m)
-  x >> y   = x >>= \_ -> y
-        \end{lstlisting}
-    \end{examplefirst}
-
-        \column{6cm}
-        \begin{examplefirst}{Ожидаемый результат}
-            \begin{lstlisting}[basicstyle=\smallcode]
-instance Functor Prob where
-  fmap   = liftM
-
-instance Applicative Prob where
-  pure   = Prob [(x,1%1)]
-  (<*>)  = ap
-  x *> y = x >>= \_ -> y
-
-instance Monad Probe where
-  return   = pure
-  (>>)     = (*>)
-  m >>= f  = flatten
-               (fmap f m)
-            \end{lstlisting}
-        \end{examplefirst}
-    \end{columns}
-
-    \end{frame}
 
     \begin{frame}{Задача 4: формирование выходного файла}
         \begin{itemize}
@@ -282,7 +295,6 @@ instance Monad Probe where
         \item \textbf{HsModule} имеет экземпляр класса
         \textbf{Outputable}.
         \item \lstinline{ppr :: Outputable a => a -> SDoc}
-        \item \lstinline{showSDocUnsafe :: SDoc -> String}
         \end{itemize}
     \end{frame}
 
@@ -317,7 +329,7 @@ f mp = case mp of {
 
         \begin{examplefirst}{Репозиторий с исходными кодами:}
             \begin{itemize}
-            \item \small{\url{https://github.com/Valoisa/Generate-ancestor-instances}}
+            \item \scriptsize{\url{https://github.com/Valoisa/Generate-ancestor-instances}}
             \end{itemize}
         \end{examplefirst}
     \end{frame}
